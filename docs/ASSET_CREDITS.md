@@ -7,3 +7,5 @@ Direct runtime dependencies: [Three.js](https://github.com/mrdoob/three.js), MIT
 Reflection/refraction uses the MIT-licensed Three.js Reflector and Refractor addons bundled with three 0.186.1; their copyright/license notices remain in the dependency. The Fresnel/Snell combination shader was authored in this project with AI assistance. Evan Wallace demo/article are technical and visual references; no source, imagery or pool tile assets copied.
 
 Riverbed: Low Tide Rocks diffuse 2K, Dimitrios Savva, [Poly Haven](https://polyhaven.com/a/low_tide_rocks), CC0 1.0. Supplied archive filename matches the published asset; source attribution is inferred from the matching name because the archive contains no license file. Only the supplied diffuse JPEG is used; EXR normal/roughness and displacement maps are not loaded.
+
+Riverbanks: Ganges River Pebbles diffuse 2K, Amal Kumar, [Poly Haven](https://polyhaven.com/a/ganges_river_pebbles), CC0 1.0. Attribution and source are inferred from the filename matching the published asset; the supplied archive has no license file. Only the diffuse JPEG is used; the supplied EXR normal/roughness and displacement maps are not loaded.

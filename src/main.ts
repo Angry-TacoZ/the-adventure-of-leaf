@@ -82,12 +82,34 @@ const bed = new THREE.Mesh(
 bed.rotation.x = -Math.PI / 2;
 bed.position.set(0, -0.41, riverCenter);
 scene.add(bed);
+// The supplied pebble diffuse map uses world-scale UVs for each bank face.
+const shoreTexture = new THREE.TextureLoader().load(
+  `${import.meta.env.BASE_URL}assets/ganges-river-pebbles-diffuse.jpg`,
+);
+shoreTexture.colorSpace = THREE.SRGBColorSpace;
+shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
+shoreTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+const shoreGeometry = new THREE.BoxGeometry(5, 1.1, riverLength);
+const shorePositions = shoreGeometry.getAttribute("position");
+const shoreNormals = shoreGeometry.getAttribute("normal");
+const shoreUV = shoreGeometry.getAttribute("uv");
+for (let i = 0; i < shoreUV.count; i++) {
+  const up = Math.abs(shoreNormals.getY(i)) > 0.5,
+    side = Math.abs(shoreNormals.getX(i)) > 0.5;
+  shoreUV.setXY(
+    i,
+    (side ? shorePositions.getZ(i) : shorePositions.getX(i)) / 2.2,
+    (up ? shorePositions.getZ(i) : shorePositions.getY(i)) / 2.2,
+  );
+}
+const shoreMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  map: shoreTexture,
+  roughness: 1,
+});
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
-  const bank = new THREE.Mesh(
-    new THREE.BoxGeometry(5, 1.1, riverLength),
-    new THREE.MeshStandardMaterial({ color: 0x71865b, roughness: 1 }),
-  );
+  const bank = new THREE.Mesh(shoreGeometry, shoreMaterial);
   bank.position.set(side * 6.7, 0.05, riverCenter);
   bank.rotation.z = side * 0.04;
   scene.add(bank);
