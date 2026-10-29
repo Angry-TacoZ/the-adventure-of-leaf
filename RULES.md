@@ -1,0 +1,5 @@
+# Engineering rules
+Understand → Inspect → Plan → Implement → Verify → Report.
+Inspect relevant code, dependencies, configuration, documentation and behavior; identify dependencies and blast radius before editing. Keep changes cohesive and traceable. Verify with appropriate automated tests, rendered visual evidence for visual changes, and real interaction and edge-case testing for gameplay. Preserve frame stability, avoid unnecessary dependencies, premature optimization and complexity. Document limitations and unverified behavior; never call untested visible or interactive behavior complete. Never silently change approved creative requirements.
+
+Track origins and licenses for external assets and dependencies. Use independently authored, procedural, or properly licensed resources. Do not copy After Rain code or assets. Demonstrations are quality references, not permission to copy. Record AI use for jam disclosure. Do not introduce unverified dependencies or automatically execute untrusted installation scripts.

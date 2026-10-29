@@ -1,0 +1,2 @@
+# Asset and dependency credits
+No third-party art assets are authorized by the references. Prototype geometry and materials are generated in project code. After Rain is all rights reserved and is only a visual reference. See WATER_TECH_EVALUATION.md for reference repository licenses. Record each production dependency, license and version before release; package-lock.json records the dependency tree.

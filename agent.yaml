@@ -1,0 +1,7 @@
+spec_version: "0.1.0"
+name: leaf-engineering
+version: "0.1.0"
+description: Game development engineering collaborator for The Adventure of Leaf
+model:
+  preferred: ""
+  fallback: []

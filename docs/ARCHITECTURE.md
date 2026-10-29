@@ -1,0 +1,2 @@
+# Architecture
+The initial slice separates a shared, time-dependent river surface and current model from wind input, leaf motion, and Three.js rendering. The camera follows the leaf with damping. Rendering and physics must sample the same surface. A developer-only panel exposes tuning, not final player UI. Desktop packaging is deferred until interaction is validated; evaluate Electron or Tauri against jam time, licensing, platform testing and size before choosing.
