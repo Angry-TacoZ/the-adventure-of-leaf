@@ -31,3 +31,7 @@ These runs show no material frame-time improvement; do not claim an FPS gain. Th
 ## Reflection/refraction pass
 
 Same host/Chromium/SwiftShader, DPR 1, quality 1, with two 512-square captures plus the main scene. Run against the prototype server using LEAF_BASE_URL=http://127.0.0.1:5186 and npm run profile. Raw results: evidence/profile-optics.json. Single-run mean / p95 frame intervals were 61.04 / 116.70 ms at 1280×720 (154 samples), and 94.95 / 166.70 ms at 1920×1080 (99 samples). CPU deformation/normals averaged 2.56/2.05 ms and 2.88/2.19 ms respectively. CPU render submission now includes both capture passes and averaged 1.33/1.59 ms. These do not measure GPU completion or physical RTX performance. This pass materially increases software-rendering cost; no 60 FPS claim is supported. Quality now reduces capture dimensions as well as main pixel ratio. Profile a physical GPU before accepting the default capture resolution.
+
+## Extended river and wind indicators
+
+A single SwiftShader run after extending the river, before the final brush-stroke tuning, measured mean frame intervals 90.16 ms at 1280×720 and 125.21 ms at 1920×1080. CPU deformation plus normals averaged about 10.14 ms and 9.92 ms respectively. The mesh has twice as many lengthwise subdivisions to preserve wave spacing. Raw data: evidence/profile-long-river.json. These software-only figures are not RTX or other physical GPU measurements, and the final ribbon version has not been profiled separately.

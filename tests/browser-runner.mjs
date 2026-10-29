@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 import { mkdir } from "node:fs/promises";
 await mkdir("output/web-game", { recursive: true });
 async function run(args, env = {}) {
@@ -14,8 +15,15 @@ async function run(args, env = {}) {
   });
 }
 async function suite(mode, script) {
-  const port = 4174,
-    base = `http://127.0.0.1:${port}`;
+  const port = await new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.on("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const port = probe.address().port;
+      probe.close((error) => (error ? reject(error) : resolve(port)));
+    });
+  });
+  const base = `http://127.0.0.1:${port}`;
   const server = spawn(
     process.execPath,
     [
@@ -29,11 +37,12 @@ async function suite(mode, script) {
     ],
     { stdio: "inherit" },
   );
-  const exited = new Promise(resolve => server.once("exit", resolve));
+  const exited = new Promise((resolve) => server.once("exit", resolve));
   try {
     let ready = false;
     for (let i = 0; i < 100; i++) {
-      if (server.exitCode !== null || server.signalCode !== null) throw Error("Server exited before ready");
+      if (server.exitCode !== null || server.signalCode !== null)
+        throw Error("Server exited before ready");
       try {
         if ((await fetch(base)).ok) {
           ready = true;

@@ -144,3 +144,12 @@ test("moving leaf generates localized ripples that fade at rest", () => {
     surface(0.6, 0, 1.2, defaults, moving),
   );
 });
+
+test("leaf travels beyond old invisible boundary and stops inside river end", () => {
+  const s = initial();
+  run(s, 40, 1 / 120);
+  assert.ok(s.z < -35);
+  run(s, 100, 1 / 120);
+  assert.equal(s.z, -109.7);
+  assert.equal(s.vz, 0);
+});

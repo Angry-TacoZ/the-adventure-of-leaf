@@ -8,6 +8,7 @@ import {
   current,
   flowField,
   obstacle,
+  river,
   type Params,
 } from "./simulation";
 import "./style.css";
@@ -50,13 +51,17 @@ camera.position.set(
 );
 const keys = new Set<string>();
 // Poly Haven Low Tide Rocks: diffuse color is sRGB; one tile spans approximately 2.2 m.
-const bedTexture = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/low-tide-rocks-diffuse.jpg`);
+const bedTexture = new THREE.TextureLoader().load(
+  `${import.meta.env.BASE_URL}assets/low-tide-rocks-diffuse.jpg`,
+);
 bedTexture.colorSpace = THREE.SRGBColorSpace;
 bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
-bedTexture.repeat.set(8.3 / 2.2, 65 / 2.2);
+const riverLength = river.start - river.end;
+const riverCenter = (river.start + river.end) / 2;
+bedTexture.repeat.set(8.3 / 2.2, riverLength / 2.2);
 bedTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 100),
+  new THREE.PlaneGeometry(200, 200),
   new THREE.MeshStandardMaterial({
     color: 0x586f49,
     roughness: 1,
@@ -64,9 +69,10 @@ const ground = new THREE.Mesh(
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.42;
+ground.position.z = riverCenter;
 scene.add(ground);
 const bed = new THREE.Mesh(
-  new THREE.PlaneGeometry(8.3, 65),
+  new THREE.PlaneGeometry(8.3, riverLength),
   new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: bedTexture,
@@ -74,18 +80,18 @@ const bed = new THREE.Mesh(
   }),
 );
 bed.rotation.x = -Math.PI / 2;
-bed.position.set(0, -0.41, -12);
+bed.position.set(0, -0.41, riverCenter);
 scene.add(bed);
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
   const bank = new THREE.Mesh(
-    new THREE.BoxGeometry(5, 1.1, 65),
+    new THREE.BoxGeometry(5, 1.1, riverLength),
     new THREE.MeshStandardMaterial({ color: 0x71865b, roughness: 1 }),
   );
-  bank.position.set(side * 6.7, 0.05, -12);
+  bank.position.set(side * 6.7, 0.05, riverCenter);
   bank.rotation.z = side * 0.04;
   scene.add(bank);
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 40; i++) {
     const rock = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.25 + (i % 4) * 0.13, 0),
       new THREE.MeshStandardMaterial({
@@ -118,8 +124,8 @@ const foam = new THREE.Mesh(
 foam.rotation.x = -Math.PI / 2;
 foam.position.set(obstacle.x, 0.08, obstacle.z);
 scene.add(foam);
-const geometry = new THREE.PlaneGeometry(8.3, 65, 70, 240);
-geometry.translate(0, 12, 0);
+const geometry = new THREE.PlaneGeometry(8.3, riverLength, 70, 480);
+geometry.translate(0, -riverCenter, 0);
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
@@ -146,6 +152,72 @@ vein.position.y = 0.01;
 leaf.add(vein);
 leaf.scale.setScalar(0.48);
 scene.add(leaf);
+// Temporary wind streaks: density and opacity follow the simulated directed wind.
+const streakCount = 15;
+const streakSegments = 12;
+const streakPositions = new Float32Array(streakCount * streakSegments * 18);
+const streakGeometry = new THREE.BufferGeometry();
+streakGeometry.setAttribute(
+  "position",
+  new THREE.BufferAttribute(streakPositions, 3).setUsage(
+    THREE.DynamicDrawUsage,
+  ),
+);
+const streakMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
+const streaks = new THREE.Mesh(streakGeometry, streakMaterial);
+streaks.frustumCulled = false;
+scene.add(streaks);
+function updateWindStreaks() {
+  const magnitude = Math.hypot(state.windX, state.windZ);
+  const strength = Math.min(1, magnitude * state.intensity * p.windStrength);
+  const count = Math.floor(streakCount * strength);
+  streakGeometry.setDrawRange(0, count * streakSegments * 6);
+  streakMaterial.opacity = Math.min(0.8, strength * 0.85);
+  if (!count) return;
+  const nx = state.windX / magnitude,
+    nz = state.windZ / magnitude;
+  for (let i = 0; i < count; i++) {
+    const wrap = (n: number, span: number) =>
+      (((n % span) + span) % span) - span / 2;
+    const x = state.x + wrap(i * 2.73 + state.windOffsetX * 2, 8);
+    const z = state.z + wrap(i * 4.17 + state.windOffsetZ * 2, 15) - 3;
+    const y = 0.5 + (i % 7) * 0.32;
+    const length = 0.7 + strength * 1.5;
+    const amplitude = 0.03 + strength * 0.25;
+    const phase = state.time * (2 + strength * 4) + i * 1.7;
+    const point = (u: number, side: number) => {
+      const bend = Math.sin(u * Math.PI * 2 - phase) * amplitude;
+      const taperedWidth = Math.sin(Math.PI * u) * 0.075 * side;
+      return [
+        x + nx * length * u - nz * (bend + taperedWidth),
+        y,
+        z + nz * length * u + nx * (bend + taperedWidth),
+      ];
+    };
+    for (let j = 0; j < streakSegments; j++) {
+      const a = j / streakSegments,
+        b = (j + 1) / streakSegments;
+      streakPositions.set(
+        [
+          ...point(a, -1),
+          ...point(a, 1),
+          ...point(b, -1),
+          ...point(a, 1),
+          ...point(b, 1),
+          ...point(b, -1),
+        ],
+        (i * streakSegments + j) * 18,
+      );
+    }
+  }
+  streakGeometry.attributes.position.needsUpdate = true;
+}
 const clock = new THREE.Clock();
 let accumulator = 0,
   lastRender = 0,
@@ -236,6 +308,7 @@ function render(dt: number) {
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
   optics.setQuality(p.quality);
+  updateWindStreaks();
   const renderStart = performance.now();
   renderer.render(scene, camera);
   if (profiling) {
@@ -290,8 +363,10 @@ window.render_game_to_text = () =>
     ...state,
     current: current(state.x, state.z, state.time, p),
     obstacle,
+    river,
     renderer: "WebGL2",
     waterOptics: optics.diagnostics(),
+    windStreaks: streakGeometry.drawRange.count / (6 * streakSegments),
     gamepad: input().gamepad,
     flow: flowField(state.x, state.z, state.time, p),
     camera: {

@@ -66,6 +66,7 @@ export const initial = (): State => ({
   time: 0,
   collision: false,
 });
+export const river = { start: 20, end: -110, stop: -109.7 };
 export const obstacle = { x: 0.25, z: -9, r: 1.05 };
 export function surface(
   x: number,
@@ -201,8 +202,8 @@ export function step(
     }
     s.collision = true;
   }
-  if (s.z < -27) {
-    s.z = -27;
+  if (s.z < river.stop) {
+    s.z = river.stop;
     s.vz = 0;
   }
   const targetY = surface(s.x, s.z, s.time, p, s) + 0.05;

@@ -17,3 +17,11 @@ Optics verification: seven simulation tests, TypeScript/build and dev/production
 Riverbed now uses supplied Low Tide Rocks 2K diffuse texture with sRGB color and 2.2 m tiling; normal, roughness and displacement maps remain unused.
 
 Replaced flat refraction-edge fallback with undistorted capture and verified the seam is gone. Added speed-dependent local leaf ripples in the shared surface sampler and checked gameplay and rendered output.
+
+Extended the playable river to z=-110; leaf stops at z=-109.7 rather than an invisible z=-27 boundary. Browser manual-time test reached z=-47 with ongoing current and no page error. Water mesh subdivision doubled to preserve spacing; device performance requires fresh measurement.
+
+Extended playable river and added intensity-dependent temporary wind streaks using the existing smoothed wind state.
+
+Wind streaks revised to fewer, tapered animated ribbon meshes; curvature and speed rise with directed wind intensity.
+
+Wind indicators now use 15 tapered, longer wavy ribbons; wave bend and animation speed increase with wind. Browser runner chooses an available port after a collision with another project.
