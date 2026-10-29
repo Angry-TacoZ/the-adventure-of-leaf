@@ -74,7 +74,15 @@ export function surface(
   p: Params,
   wind: Pick<
     State,
-    "intensity" | "windX" | "windZ" | "windOffsetX" | "windOffsetZ"
+    | "intensity"
+    | "windX"
+    | "windZ"
+    | "windOffsetX"
+    | "windOffsetZ"
+    | "x"
+    | "z"
+    | "vx"
+    | "vz"
   >,
 ) {
   const { intensity, windX, windZ, windOffsetX, windOffsetZ } = wind;
@@ -104,7 +112,23 @@ export function surface(
         Math.sin(
           -1.1 * x + 2.8 * z - (-1.1 * windOffsetX + 2.8 * windOffsetZ),
         ));
-  return waves + eddy + windWaves;
+  // A bounded expanding ripple follows the moving leaf and vanishes at rest.
+  const dx = x - wind.x,
+    dz = z - wind.z;
+  let leafRipple = 0;
+  if (Math.abs(dx) < 2.5 && Math.abs(dz) < 2.5) {
+    const r = Math.hypot(dx, dz);
+    const strength = Math.min(1, Math.hypot(wind.vx, wind.vz));
+    leafRipple =
+      p.ripple *
+      p.damping *
+      1.8 *
+      strength *
+      Math.sin(r * 9 - t * 5) *
+      Math.exp(-r * 1.2) *
+      (1 - Math.exp(-r * 8));
+  }
+  return waves + eddy + windWaves + leafRipple;
 }
 export function current(x: number, z: number, t: number, p: Params) {
   return Math.max(

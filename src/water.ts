@@ -38,9 +38,11 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
    vec2 refractedUV=projected(refractionMatrix*vec4(bedLocal,1.));
    vec2 reflectedUV=projected(reflectionMatrix*vec4(localPoint,1.))+N.xz*.025;
    vec3 above=texture2D(reflectionMap,clamp(reflectedUV,vec2(.001),vec2(.999))).rgb;
-   vec3 below=texture2D(refractionMap,clamp(refractedUV,vec2(.001),vec2(.999))).rgb;
+   vec2 originalUV=projected(refractionMatrix*vec4(localPoint,1.));
+   vec3 undistorted=texture2D(refractionMap,clamp(originalUV,vec2(.001),vec2(.999))).rgb;
+   vec3 below=mix(undistorted,texture2D(refractionMap,clamp(refractedUV,vec2(.001),vec2(.999))).rgb,edgeFade(refractedUV));
    vec3 tint=vec3(.12,.31,.29);
-   below=mix(tint,below,refractionWeight*edgeFade(refractedUV))*vec3(.72,.93,.9);
+   below=mix(tint,below,refractionWeight)*vec3(.72,.93,.9);
    above=mix(tint,above,reflectionWeight*edgeFade(reflectedUV));
    gl_FragColor=vec4(mix(below,above,fresnel),1.);
    #include <tonemapping_fragment>

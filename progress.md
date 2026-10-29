@@ -15,3 +15,5 @@ CI follow-up: resize regression waits advance actual gameplay on slow software r
 Optics verification: seven simulation tests, TypeScript/build and dev/production browser suites pass. Inspected enabled/no-reflection/no-refraction frozen canvas captures. Extra capture passes increase SwiftShader frame intervals (~61 ms at 720p, ~95 ms at 1080p); no hardware performance claim. Planar/screen-edge limitations documented.
 
 Riverbed now uses supplied Low Tide Rocks 2K diffuse texture with sRGB color and 2.2 m tiling; normal, roughness and displacement maps remain unused.
+
+Replaced flat refraction-edge fallback with undistorted capture and verified the seam is gone. Added speed-dependent local leaf ripples in the shared surface sampler and checked gameplay and rendered output.

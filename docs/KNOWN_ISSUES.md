@@ -8,3 +8,5 @@
 - No Windows or Mac executable is packaged or tested. The jam requires one. AI disclosure and all dependency/asset licenses need final review before submission.
 
 Optics limitations: reflection/refraction clip around the mean surface plane; large crests, partly submerged objects and screen edges can show capture artifacts. Refraction assumes the riverbed is at y=-0.41, with no arbitrary submerged-mesh ray tracing. No caustics, multiple scattering, underwater camera or artistic-fidelity acceptance is claimed. Two extra scene passes add rendering cost; hardware GPU performance remains unverified.
+
+Leaf ripples follow the leaf as a localized approximation; they do not persist as independently propagating wake history.

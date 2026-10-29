@@ -11,3 +11,7 @@ See PERFORMANCE.md for measured water costs and GITAGENT_VALIDATION.md for actua
 The drawing buffer is resized on viewport events or actual pixel-ratio changes; steady render frames do not call the pixel-ratio setter. Obstacle deflection has been narrowed and reduced so the default zero-wind path clears the rock without approaching the bank as closely.
 
 Water optics: src/water.ts owns Three.js planar capture helpers and a Fresnel/Snell shader. The water geometry now stays in local XY and is rotated as a mesh, so the capture helpers use the correct upward plane normal. Vertex height is local Z, sampling world (x,-localY). The leaf remains in world coordinates. Capture resolution changes only when quality changes. The manual-only test controls disable each optical contribution for stable canvas comparisons; production exposes neither the controls nor manual stepping.
+
+A bounded speed-dependent ripple around the leaf is included in the shared surface sampler, so it contributes to the rendered wave geometry and leaf alignment. It is a local approximation rather than a persistent wake.
+
+At the screen capture edge, refraction smoothly falls back to the undistorted scene capture instead of a flat color, avoiding a visible strip; samples outside the captured view remain approximate.

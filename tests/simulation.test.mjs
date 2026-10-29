@@ -131,3 +131,16 @@ test("late-session wind changes preserve wave phase continuity", () => {
   assert.equal(initial().windOffsetX, 0);
   assert.equal(initial().windOffsetZ, 0);
 });
+
+test("moving leaf generates localized ripples that fade at rest", () => {
+  const s = initial();
+  const moving = { ...s, vz: -1 };
+  const sample = (x, z, state) => surface(x, z, 1, defaults, state);
+  assert.ok(Math.abs(sample(0.6, 0, moving) - sample(0.6, 0, s)) > 0.001);
+  assert.equal(sample(0, 0, moving), sample(0, 0, s));
+  assert.equal(sample(4, 0, moving), sample(4, 0, s));
+  assert.notEqual(
+    sample(0.6, 0, moving),
+    surface(0.6, 0, 1.2, defaults, moving),
+  );
+});
