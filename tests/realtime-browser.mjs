@@ -135,23 +135,47 @@ try {
   );
   await page.evaluate(() => {
     window.mockPad.axes[0] = 1;
-    window.mockPad.buttons[7].value = 1;
   });
+  for (let i = 1; i <= 4; i++) {
+    await page.evaluate(() => {
+      window.mockPad.buttons[7].value = 1;
+    });
+    await page.waitForFunction(
+      (level) => JSON.parse(window.render_game_to_text()).windLevel === level,
+      i,
+    );
+    await page.evaluate(() => {
+      window.mockPad.buttons[7].value = 0;
+    });
+    await page.waitForFunction(
+      () => !JSON.parse(window.render_game_to_text()).raisePressed,
+    );
+  }
   await page.waitForFunction(() => {
     const s = JSON.parse(window.render_game_to_text());
-    return s.intensity > 0.95 && s.x > 0.35;
+    return s.intensity > 0.9 && s.x > 0.35;
   });
   const wind = await read();
-  assert.ok(
-    wind.windStreaks > 0,
-    "directed wind should produce visible streaks",
-  );
+  assert.ok(wind.windStreaks > 0);
   await page.screenshot({ path: "output/web-game/directional-wind.png" });
   await page.evaluate(() => {
     window.mockPad.axes[0] = 0;
-    window.mockPad.buttons[7].value = 0;
-    window.mockPad.buttons[6].value = 1;
   });
+  for (let i = 3; i >= 0; i--) {
+    await page.evaluate(() => {
+      window.mockPad.buttons[6].value = 1;
+    });
+    await page.waitForFunction(
+      (level) => JSON.parse(window.render_game_to_text()).windLevel === level,
+      i,
+    );
+    await page.evaluate(() => {
+      window.mockPad.buttons[6].value = 0;
+    });
+    await page.waitForFunction(
+      () => !JSON.parse(window.render_game_to_text()).lowerPressed,
+    );
+  }
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).intensity < 0.2,
   );

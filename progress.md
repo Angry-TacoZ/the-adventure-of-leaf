@@ -25,3 +25,5 @@ Extended playable river and added intensity-dependent temporary wind streaks usi
 Wind streaks revised to fewer, tapered animated ribbon meshes; curvature and speed rise with directed wind intensity.
 
 Wind indicators now use 15 tapered, longer wavy ribbons; wave bend and animation speed increase with wind. Browser runner chooses an available port after a collision with another project.
+
+James selected five persistent wind levels, with one step per right/left trigger press; keyboard E/Q matches. Smoothing and analog hysteresis avoid force jumps and repeats. Automated simulation and browser checks cover the controls.

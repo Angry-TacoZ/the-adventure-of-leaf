@@ -17,12 +17,30 @@ test("current carries the leaf downstream and it remains near the surface", () =
   assert.ok(s.z < -2);
   assert.ok(Math.abs(s.y - surface(s.x, s.z, s.time, defaults, s)) < 0.15);
 });
-test("wind changes motion and trigger intensity returns to natural conditions", () => {
-  const s = run(initial(), 2, 1 / 120, { x: 1, z: 0, raise: 1, lower: 0 });
+function tap(s, up = true) {
+  step(s, defaults, { ...neutral, [up ? "raise" : "lower"]: 1 }, 1 / 120);
+  step(s, defaults, neutral, 1 / 120);
+}
+test("five wind levels change once per trigger press and persist", () => {
+  const s = initial();
+  run(s, 2, 1 / 120, { x: 1, z: 0, raise: 1, lower: 0 });
+  assert.equal(s.windLevel, 1);
+  assert.ok(s.intensity > 0.2 && s.intensity < 0.26);
+  run(s, 2, 1 / 120, { x: 1, z: 0, raise: 0, lower: 0 });
+  assert.equal(s.windLevel, 1);
+  assert.ok(s.intensity > 0.24);
+  for (let i = 0; i < 6; i++) tap(s);
+  assert.equal(s.windLevel, 4);
+  for (let i = 0; i < 6; i++) tap(s, false);
+  assert.equal(s.windLevel, 0);
+  step(s, defaults, { ...neutral, raise: 1, lower: 1 }, 1 / 120);
+  assert.equal(s.windLevel, 0);
+});
+test("selected wind changes leaf motion", () => {
+  const s = initial();
+  for (let i = 0; i < 4; i++) tap(s);
+  run(s, 2, 1 / 120, { x: 1, z: 0, raise: 0, lower: 0 });
   assert.ok(s.x > 0.2 && s.intensity > 0.9);
-  const before = s.intensity;
-  run(s, 2, 1 / 120);
-  assert.ok(s.intensity < before);
 });
 test("obstacle rejects penetration", () => {
   const s = initial();
@@ -91,7 +109,9 @@ test("directed ripple phase follows accumulated wind displacement", () => {
   );
 });
 test("late-session wind changes preserve wave phase continuity", () => {
-  const s = run(initial(), 600, 1 / 120, { x: 1, z: 0, raise: 1, lower: 0 });
+  const s = initial();
+  for (let i = 0; i < 4; i++) tap(s);
+  run(s, 600, 1 / 120, { x: 1, z: 0, raise: 0, lower: 0 });
   assert.ok(s.windOffsetX > 400, "wind displacement was not accumulated");
   assert.equal(
     surface(0.7, -4, s.time, defaults, s),

@@ -17,3 +17,5 @@ A bounded speed-dependent ripple around the leaf is included in the shared surfa
 At the screen capture edge, refraction smoothly falls back to the undistorted scene capture instead of a flat color, avoiding a visible strip; samples outside the captured view remain approximate.
 
 The extended river spans z=20 to z=-110; the leaf stops at z=-109.7, near its visible end. Water and bed share this extent and preserve texture/mesh spacing. Temporary wind indicators are tapered, wavy ribbon meshes: count, length, curvature and animation rate respond to the existing directed wind strength. They do not apply force or introduce a new control.
+
+Wind uses five persistent selectable levels; trigger edge detection with hysteresis gives one change per press, and intensity transitions smoothly to the selected level. Neutral stick means no directed wind; restart returns to calm.

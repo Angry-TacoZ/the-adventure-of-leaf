@@ -46,6 +46,9 @@ export type State = {
   windX: number;
   windZ: number;
   intensity: number;
+  windLevel: number;
+  raisePressed: boolean;
+  lowerPressed: boolean;
   windOffsetX: number;
   windOffsetZ: number;
   time: number;
@@ -61,6 +64,9 @@ export const initial = (): State => ({
   windX: 0,
   windZ: 0,
   intensity: 0,
+  windLevel: 0,
+  raisePressed: false,
+  lowerPressed: false,
   windOffsetX: 0,
   windOffsetZ: 0,
   time: 0,
@@ -164,11 +170,16 @@ export function step(
   s.time += dt;
   const k = 1 - Math.exp(-p.windResponse * dt);
   const magnitude = Math.min(1, Math.hypot(input.x, input.z));
-  s.intensity = Math.max(
-    0,
-    Math.min(1, s.intensity + (input.raise - input.lower) * dt * 0.6),
-  );
-  if (!input.raise && !input.lower) s.intensity *= Math.exp(-dt * 0.32);
+  // Hysteresis prevents analog trigger jitter from creating extra presses.
+  const raising = s.raisePressed ? input.raise > 0.4 : input.raise >= 0.6;
+  const lowering = s.lowerPressed ? input.lower > 0.4 : input.lower >= 0.6;
+  const up = raising && !s.raisePressed;
+  const down = lowering && !s.lowerPressed;
+  if (up !== down)
+    s.windLevel = Math.max(0, Math.min(4, s.windLevel + (up ? 1 : -1)));
+  s.raisePressed = raising;
+  s.lowerPressed = lowering;
+  s.intensity += (s.windLevel / 4 - s.intensity) * k;
   s.windX += (input.x * (magnitude ? 1 : 0) - s.windX) * k;
   s.windZ += (input.z * (magnitude ? 1 : 0) - s.windZ) * k;
   // Integrate velocity rather than recomputing phase from total session time.

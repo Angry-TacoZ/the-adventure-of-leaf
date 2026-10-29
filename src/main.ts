@@ -321,7 +321,7 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
-  diag.textContent = `WebGL2 · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\ncurrent ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
+  diag.textContent = `WebGL2 · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
 }
 let lastInterval = 0;
 function loop(now: number) {

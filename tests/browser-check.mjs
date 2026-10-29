@@ -39,32 +39,44 @@ assert.ok(n.z < s.z - 1);
 assert.ok(Math.abs(n.y) < 0.2);
 await page.evaluate(() => {
   window.mockPad.axes[0] = 1;
-  window.mockPad.buttons[7].value = 1;
+  for (let i = 0; i < 4; i++) {
+    window.mockPad.buttons[7].value = 1;
+    window.advanceTime(20);
+    window.mockPad.buttons[7].value = 0;
+    window.advanceTime(20);
+  }
   window.advanceTime(2000);
 });
 let w = await read();
-assert.ok(w.x > n.x + 0.2 && w.intensity > 0.9);
+assert.ok(w.x > n.x + 0.2 && w.intensity > 0.9 && w.windLevel === 4);
 await page.evaluate(() => {
   window.mockPad.axes[0] = 0;
-  window.mockPad.buttons[7].value = 0;
-  window.mockPad.buttons[6].value = 1;
-  window.advanceTime(1000);
+  for (let i = 0; i < 3; i++) {
+    window.mockPad.buttons[6].value = 1;
+    window.advanceTime(20);
+    window.mockPad.buttons[6].value = 0;
+    window.advanceTime(20);
+  }
+  window.advanceTime(2000);
 });
 let l = await read();
-assert.ok(l.intensity < w.intensity - 0.4);
-await page.evaluate(() => {
-  window.mockPad.buttons[6].value = 0;
-  window.advanceTime(1000);
-});
+assert.equal(l.windLevel, 1);
+assert.ok(l.intensity < 0.3);
+await page.evaluate(() => window.advanceTime(1000));
 let neutral = await read();
-assert.ok(neutral.intensity < l.intensity);
+assert.equal(neutral.windLevel, 1);
+assert.ok(neutral.intensity > 0.24);
 await page.screenshot({ path: "output/web-game/controller.png" });
 await page.keyboard.press("r");
+for (let i = 0; i < 4; i++) {
+  await page.keyboard.down("e");
+  await page.evaluate(() => window.advanceTime(20));
+  await page.keyboard.up("e");
+  await page.evaluate(() => window.advanceTime(20));
+}
 await page.keyboard.down("d");
-await page.keyboard.down("e");
 await page.evaluate(() => window.advanceTime(2000));
 await page.keyboard.up("d");
-await page.keyboard.up("e");
 const keyboard = await read();
 assert.ok(keyboard.x > 0.2 && keyboard.intensity > 0.9);
 await page.getByRole("button", { name: "River tuning · development" }).click();
@@ -85,7 +97,9 @@ await page.waitForFunction(
   () => document.querySelector("canvas").width === 1280,
 );
 await page.evaluate(() => window.advanceTime(0));
-const hideOverlays=await page.addStyleTag({content:"#hud,.lil-gui{visibility:hidden}"});
+const hideOverlays = await page.addStyleTag({
+  content: "#hud,.lil-gui{visibility:hidden}",
+});
 const enabled = await page.locator("canvas").screenshot({
   path: "output/web-game/water-optics.png",
 });
@@ -108,7 +122,7 @@ assert.notDeepEqual(
   "refraction must change rendered pixels",
 );
 await page.evaluate(() => window.setWaterOptics(1, 1));
-await hideOverlays.evaluate(e=>e.remove());
+await hideOverlays.evaluate((e) => e.remove());
 assert.ok((await read()).waterOptics.captures > 0);
 assert.deepEqual(errors, []);
 const fallback = await browser.newPage();

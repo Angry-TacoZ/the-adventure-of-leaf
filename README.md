@@ -4,7 +4,7 @@ An early Three.js / TypeScript / Vite river interaction prototype for thatgameja
 
 ## Run locally
 
-Install Node.js 24, then run `npm ci --ignore-scripts` and `npm run dev`. Open the local address printed by Vite. Use WASD or arrows to direct wind, E to increase it, Q to decrease it, R to restart, and F for fullscreen. A standard-mapped gamepad uses the left stick and triggers. Wind intensity gradually returns toward natural conditions after release. The development-only tuning panel saves one preset in browser local storage.
+Install Node.js 24, then run `npm ci --ignore-scripts` and `npm run dev`. Open the local address printed by Vite. Use WASD or arrows to direct wind, tap E to increase the wind level, Q to decrease it, R to restart, and F for fullscreen. A standard-mapped gamepad uses the left stick and triggers. Each trigger or E/Q press changes one of five persistent wind levels; neutral direction removes directed wind. The development-only tuning panel saves one preset in browser local storage.
 
 Run `npm run verify` for simulation tests, TypeScript and a production build. With the dev server running and a Playwright Chromium browser installed, run `node tests/browser-check.mjs` for browser interactions and the WebGL failure message. `npm run preview` serves the built version.
 
