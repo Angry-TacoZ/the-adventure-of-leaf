@@ -9,3 +9,5 @@ Install Node.js 24, then run `npm ci --ignore-scripts` and `npm run dev`. Open t
 Run `npm run verify` for simulation tests, TypeScript and a production build. With the dev server running and a Playwright Chromium browser installed, run `node tests/browser-check.mjs` for browser interactions and the WebGL failure message. `npm run preview` serves the built version.
 
 See [design](docs/GAME_DESIGN.md), [architecture](docs/ARCHITECTURE.md), [water evaluation](docs/WATER_TECH_EVALUATION.md), and [known issues](docs/KNOWN_ISSUES.md). This is not a finished game. The jam requires a Windows or Mac build by November 7, 2026, 11:59 PM Pacific; browser development alone does not satisfy that requirement.
+
+Run `npm run verify` followed by `npm run test:browser` for the complete CI checks. The browser runner manages dev and production preview servers on port 4174; install Chromium with `npx --no-install playwright install chromium` first. Browser evidence is saved under output/web-game. See [performance measurements](docs/PERFORMANCE.md) and [GitAgent validation](docs/GITAGENT_VALIDATION.md).
