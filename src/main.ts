@@ -49,18 +49,12 @@ camera.position.set(
   state.z + p.cameraDistance,
 );
 const keys = new Set<string>();
-// Procedural riverbed detail makes transmitted distortion observable without external art.
-const bedPixels = new Uint8Array(64 * 64 * 4);
-let bedSeed = 19;
-for (let i = 0; i < 64 * 64; i++) {
-  bedSeed = (Math.imul(bedSeed, 1664525) + 1013904223) >>> 0;
-  const shade = 150 + (bedSeed % 90);
-  bedPixels.set([shade, shade, shade, 255], i * 4);
-}
-const bedTexture = new THREE.DataTexture(bedPixels, 64, 64);
+// Poly Haven Low Tide Rocks: diffuse color is sRGB; one tile spans approximately 2.2 m.
+const bedTexture = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/low-tide-rocks-diffuse.jpg`);
+bedTexture.colorSpace = THREE.SRGBColorSpace;
 bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
-bedTexture.repeat.set(4, 30);
-bedTexture.needsUpdate = true;
+bedTexture.repeat.set(8.3 / 2.2, 65 / 2.2);
+bedTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(100, 100),
   new THREE.MeshStandardMaterial({
@@ -74,7 +68,7 @@ scene.add(ground);
 const bed = new THREE.Mesh(
   new THREE.PlaneGeometry(8.3, 65),
   new THREE.MeshStandardMaterial({
-    color: 0x9d967b,
+    color: 0xffffff,
     map: bedTexture,
     roughness: 1,
   }),

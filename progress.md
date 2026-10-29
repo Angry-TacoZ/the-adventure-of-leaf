@@ -13,3 +13,5 @@ CI follow-up: resize regression waits advance actual gameplay on slow software r
 2026-10-29 optics: confirmed missing reflection/refraction against review f661da7; added Three.js planar captures with Fresnel blending, shallow-bed Snell refraction and shared wave normals. Riverbed procedural material and manual-only contribution comparisons added. Caustics article researched, caustics not implemented. Local browser port is 5186 because 5173 was occupied by another app.
 
 Optics verification: seven simulation tests, TypeScript/build and dev/production browser suites pass. Inspected enabled/no-reflection/no-refraction frozen canvas captures. Extra capture passes increase SwiftShader frame intervals (~61 ms at 720p, ~95 ms at 1080p); no hardware performance claim. Planar/screen-edge limitations documented.
+
+Riverbed now uses supplied Low Tide Rocks 2K diffuse texture with sRGB color and 2.2 m tiling; normal, roughness and displacement maps remain unused.
