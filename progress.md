@@ -29,3 +29,5 @@ Wind indicators now use 15 tapered, longer wavy ribbons; wave bend and animation
 James selected five persistent wind levels, with one step per right/left trigger press; keyboard E/Q matches. Smoothing and analog hysteresis avoid force jumps and repeats. Automated simulation and browser checks cover the controls.
 
 Applied supplied Ganges River Pebbles diffuse map to both banks with face-specific world-scale UVs; source inferred from filename matching Poly Haven.
+
+James requested a low close-follow camera. Defaults set to 0.65 m behind the leaf centre and 0.22 m above it; sliders support close adjustment. Rendered and browser-follow checks passed.

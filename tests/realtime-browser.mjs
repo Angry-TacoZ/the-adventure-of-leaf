@@ -115,7 +115,7 @@ try {
   );
   assert.ok(passed.camera.z < start.camera.z - 2);
   assert.ok(Math.abs(passed.camera.x - passed.x) < 0.8);
-  assert.ok(Math.abs(passed.camera.z - passed.z - 7.5) < 1);
+  assert.ok(Math.abs(passed.camera.z - passed.z - 0.65) < 1);
   const track = await page.evaluate(() => window.cameraTrack);
   let maxCameraStep = 0;
   for (let i = 1; i < track.length; i++)

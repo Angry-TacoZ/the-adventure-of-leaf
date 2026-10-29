@@ -434,8 +434,8 @@ if (import.meta.env.DEV) {
     phys.add(p, "buoyancy", 1, 20, 0.1);
     phys.add(p, "alignment", 0, 8, 0.1);
     const cam = gui.addFolder("Camera");
-    cam.add(p, "cameraDistance", 3, 15, 0.1);
-    cam.add(p, "cameraHeight", 1, 10, 0.1);
+    cam.add(p, "cameraDistance", 0.4, 15, 0.05);
+    cam.add(p, "cameraHeight", 0.1, 10, 0.05);
     cam.add(p, "cameraAngle", -1, 4, 0.1);
     cam.add(p, "cameraSmoothing", 0.2, 10, 0.1);
     const presets = {
