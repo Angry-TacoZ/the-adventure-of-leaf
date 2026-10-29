@@ -27,3 +27,7 @@ Repeated the same single-run SwiftShader profile immediately before and after th
 | 1920×1080 | 41.41 / 83.20 | 41.66 / 83.30 |
 
 These runs show no material frame-time improvement; do not claim an FPS gain. The verified benefit is removal of repeated drawing-buffer writes. Software rendering still limits these results, and they do not measure an RTX 4090. CPU height deformation plus normals remains about 4.6–4.9 ms per frame in the follow-up. The earlier GPU-displacement recommendation remains a follow-up experiment, not a proven hardware performance fix.
+
+## Reflection/refraction pass
+
+Same host/Chromium/SwiftShader, DPR 1, quality 1, with two 512-square captures plus the main scene. Run against the prototype server using LEAF_BASE_URL=http://127.0.0.1:5186 and npm run profile. Raw results: evidence/profile-optics.json. Single-run mean / p95 frame intervals were 61.04 / 116.70 ms at 1280×720 (154 samples), and 94.95 / 166.70 ms at 1920×1080 (99 samples). CPU deformation/normals averaged 2.56/2.05 ms and 2.88/2.19 ms respectively. CPU render submission now includes both capture passes and averaged 1.33/1.59 ms. These do not measure GPU completion or physical RTX performance. This pass materially increases software-rendering cost; no 60 FPS claim is supported. Quality now reduces capture dimensions as well as main pixel ratio. Profile a physical GPU before accepting the default capture resolution.

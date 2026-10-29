@@ -108,6 +108,8 @@ try {
   assert.ok(passed.time > 8);
   assert.ok(Math.abs(passed.x) < 2.5, "natural current drifted too near bank");
   assert.equal(passed.manual, false);
+  assert.ok(passed.waterOptics.captures>start.waterOptics.captures);
+  assert.equal(await page.evaluate(()=>typeof window.setWaterOptics),"undefined");
   assert.ok(passed.camera.z < start.camera.z - 2);
   assert.ok(Math.abs(passed.camera.x - passed.x) < 0.8);
   assert.ok(Math.abs(passed.camera.z - passed.z - 7.5) < 1);

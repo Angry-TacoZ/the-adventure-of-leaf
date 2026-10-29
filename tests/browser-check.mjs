@@ -78,11 +78,38 @@ await quality.press("Enter");
 await page.waitForFunction(
   () => document.querySelector("canvas").width === 640,
 );
+assert.equal((await read()).waterOptics.size, 256);
 await quality.fill("1");
 await quality.press("Enter");
 await page.waitForFunction(
   () => document.querySelector("canvas").width === 1280,
 );
+await page.evaluate(() => window.advanceTime(0));
+const hideOverlays=await page.addStyleTag({content:"#hud,.lil-gui{visibility:hidden}"});
+const enabled = await page.locator("canvas").screenshot({
+  path: "output/web-game/water-optics.png",
+});
+await page.evaluate(() => window.setWaterOptics(0, 1));
+const withoutReflection = await page.locator("canvas").screenshot({
+  path: "output/web-game/water-no-reflection.png",
+});
+assert.notDeepEqual(
+  enabled,
+  withoutReflection,
+  "reflection must change rendered pixels",
+);
+await page.evaluate(() => window.setWaterOptics(1, 0));
+const withoutRefraction = await page.locator("canvas").screenshot({
+  path: "output/web-game/water-no-refraction.png",
+});
+assert.notDeepEqual(
+  enabled,
+  withoutRefraction,
+  "refraction must change rendered pixels",
+);
+await page.evaluate(() => window.setWaterOptics(1, 1));
+await hideOverlays.evaluate(e=>e.remove());
+assert.ok((await read()).waterOptics.captures > 0);
 assert.deepEqual(errors, []);
 const fallback = await browser.newPage();
 await fallback.addInitScript(() => {

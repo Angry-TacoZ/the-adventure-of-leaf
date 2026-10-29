@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createRiverWater } from "./water";
 import {
   defaults,
   initial,
@@ -48,13 +49,39 @@ camera.position.set(
   state.z + p.cameraDistance,
 );
 const keys = new Set<string>();
+// Procedural riverbed detail makes transmitted distortion observable without external art.
+const bedPixels = new Uint8Array(64 * 64 * 4);
+let bedSeed = 19;
+for (let i = 0; i < 64 * 64; i++) {
+  bedSeed = (Math.imul(bedSeed, 1664525) + 1013904223) >>> 0;
+  const shade = 150 + (bedSeed % 90);
+  bedPixels.set([shade, shade, shade, 255], i * 4);
+}
+const bedTexture = new THREE.DataTexture(bedPixels, 64, 64);
+bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
+bedTexture.repeat.set(4, 30);
+bedTexture.needsUpdate = true;
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(100, 100),
-  new THREE.MeshStandardMaterial({ color: 0x586f49, roughness: 1 }),
+  new THREE.MeshStandardMaterial({
+    color: 0x586f49,
+    roughness: 1,
+  }),
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.42;
 scene.add(ground);
+const bed = new THREE.Mesh(
+  new THREE.PlaneGeometry(8.3, 65),
+  new THREE.MeshStandardMaterial({
+    color: 0x9d967b,
+    map: bedTexture,
+    roughness: 1,
+  }),
+);
+bed.rotation.x = -Math.PI / 2;
+bed.position.set(0, -0.41, -12);
+scene.add(bed);
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
   const bank = new THREE.Mesh(
@@ -98,17 +125,9 @@ foam.rotation.x = -Math.PI / 2;
 foam.position.set(obstacle.x, 0.08, obstacle.z);
 scene.add(foam);
 const geometry = new THREE.PlaneGeometry(8.3, 65, 70, 240);
-geometry.rotateX(-Math.PI / 2);
-geometry.translate(0, 0, -12);
-const water = new THREE.Mesh(
-  geometry,
-  new THREE.MeshStandardMaterial({
-    color: 0x3f8c8d,
-    roughness: 0.26,
-    metalness: 0.16,
-    side: THREE.DoubleSide,
-  }),
-);
+geometry.translate(0, 12, 0);
+const optics = createRiverWater(geometry);
+const water = optics.mesh;
 scene.add(water);
 const leaf = new THREE.Group();
 const shape = new THREE.Shape();
@@ -190,7 +209,7 @@ function render(dt: number) {
   const started = performance.now();
   const attr = geometry.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < attr.count; i++)
-    attr.setY(i, surface(attr.getX(i), attr.getZ(i), state.time, p, state));
+    attr.setZ(i, surface(attr.getX(i), -attr.getY(i), state.time, p, state));
   attr.needsUpdate = true;
   const deformed = performance.now();
   geometry.computeVertexNormals();
@@ -222,6 +241,7 @@ function render(dt: number) {
   const pixelRatio = Math.min(devicePixelRatio, p.quality);
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
+  optics.setQuality(p.quality);
   const renderStart = performance.now();
   renderer.render(scene, camera);
   if (profiling) {
@@ -251,7 +271,7 @@ function loop(now: number) {
       accumulator -= 1 / 120;
     }
   }
-  render(dt);
+  render(manual ? 0 : dt);
 }
 window.addEventListener("keydown", (e) => {
   keys.add(e.key.toLowerCase());
@@ -277,6 +297,7 @@ window.render_game_to_text = () =>
     current: current(state.x, state.z, state.time, p),
     obstacle,
     renderer: "WebGL2",
+    waterOptics: optics.diagnostics(),
     gamepad: input().gamepad,
     flow: flowField(state.x, state.z, state.time, p),
     camera: {
@@ -292,6 +313,11 @@ window.render_game_to_text = () =>
       surface(1, -4, state.time, p, state),
     ],
   });
+if (manual)
+  window.setWaterOptics = (reflection: number, refraction: number) => {
+    optics.material.uniforms.reflectionWeight.value = reflection;
+    optics.material.uniforms.refractionWeight.value = refraction;
+  };
 if (manual)
   window.advanceTime = (ms: number) => {
     const count = Math.ceil(ms / (1000 / 120));
