@@ -15,9 +15,7 @@ function run(s, seconds, dt, input = neutral) {
 test("current carries the leaf downstream and it remains near the surface", () => {
   const s = run(initial(), 4, 1 / 120);
   assert.ok(s.z < -2);
-  assert.ok(
-    Math.abs(s.y - surface(s.x, s.z, s.time, defaults, s.intensity)) < 0.15,
-  );
+  assert.ok(Math.abs(s.y - surface(s.x, s.z, s.time, defaults, s)) < 0.15);
 });
 test("wind changes motion and trigger intensity returns to natural conditions", () => {
   const s = run(initial(), 2, 1 / 120, { x: 1, z: 0, raise: 1, lower: 0 });
@@ -49,9 +47,11 @@ test("zero-wind current carries multiple approaches past the rock without penetr
     for (const turbulence of [0, defaults.turbulence]) {
       const s = initial();
       s.x = x;
-      let minimum = Infinity;
+      let minimum = Infinity,
+        maxLateral = 0;
       for (let i = 0; i < 2400; i++) {
         step(s, { ...defaults, turbulence }, neutral, 1 / 120);
+        maxLateral = Math.max(maxLateral, Math.abs(s.x));
         minimum = Math.min(
           minimum,
           Math.hypot(s.x - obstacle.x, s.z - obstacle.z),
@@ -61,36 +61,73 @@ test("zero-wind current carries multiple approaches past the rock without penetr
         s.z < -15,
         `stagnation at ${x}, turbulence ${turbulence}: ${s.z}`,
       );
+      assert.ok(maxLateral < 2.8, `excessive bank deflection ${maxLateral}`);
       assert.ok(minimum >= obstacle.r + 0.28 - 1e-8);
     }
 });
-test("wind direction changes the shared surface while neutral direction removes directed ripples", () => {
-  const left = surface(0.7, -4, 2, defaults, 1, -1, 0),
-    right = surface(0.7, -4, 2, defaults, 1, 1, 0);
-  assert.ok(Math.abs(left - right) > 0.005);
-  assert.equal(
-    surface(0.7, -4, 2, defaults, 0, -1, 0),
-    surface(0.7, -4, 2, defaults, 0, 1, 0),
-  );
-});
-
-test("directed ripple phase advects with the wind vector", () => {
-  const x = 0.7,
-    z = -4,
-    t = 2,
-    dt = 0.2,
-    wx = 0.8,
-    wz = -0.3;
-  const residual = (x, z, t) =>
-    surface(x, z, t, defaults, 1, wx, wz) - surface(x, z, t, defaults, 1, 0, 0);
+test("directed ripple phase follows accumulated wind displacement", () => {
+  const wind = {
+    ...initial(),
+    intensity: 1,
+    windX: 0.8,
+    windZ: -0.3,
+    windOffsetX: 2,
+    windOffsetZ: -1,
+  };
+  const dx = 0.8 * defaults.windStrength * 0.2,
+    dz = -0.3 * defaults.windStrength * 0.2;
+  const residual = (x, z, t, w) =>
+    surface(x, z, t, defaults, w) -
+    surface(x, z, t, defaults, { ...w, windX: 0, windZ: 0 });
   assert.ok(
     Math.abs(
-      residual(x, z, t) -
-        residual(
-          x + wx * defaults.windStrength * dt,
-          z + wz * defaults.windStrength * dt,
-          t + dt,
-        ),
+      residual(0.7, -4, 2, wind) -
+        residual(0.7 + dx, -4 + dz, 2.2, {
+          ...wind,
+          windOffsetX: 2 + dx,
+          windOffsetZ: -1 + dz,
+        }),
     ) < 1e-10,
   );
+});
+test("late-session wind changes preserve wave phase continuity", () => {
+  const s = run(initial(), 600, 1 / 120, { x: 1, z: 0, raise: 1, lower: 0 });
+  assert.ok(s.windOffsetX > 400, "wind displacement was not accumulated");
+  assert.equal(
+    surface(0.7, -4, s.time, defaults, s),
+    surface(0.7, -4, s.time, defaults, { ...s, windX: -s.windX }),
+    "instant direction flip rephased waves",
+  );
+  assert.ok(
+    Math.abs(
+      surface(0.7, -4, s.time, { ...defaults, windStrength: 0.79 }, s) -
+        surface(0.7, -4, s.time, defaults, s),
+    ) < 0.002,
+    "small strength adjustment rephased waves",
+  );
+  for (const input of [
+    { x: -1, z: 0, raise: 0, lower: 1 },
+    { x: 0, z: 1, raise: 1, lower: 0 },
+  ]) {
+    const before = { ...s };
+    const dt = 1 / 120;
+    step(s, defaults, input, dt);
+    assert.ok(
+      Math.hypot(
+        s.windOffsetX - before.windOffsetX,
+        s.windOffsetZ - before.windOffsetZ,
+      ) <=
+        defaults.windStrength * dt + 1e-9,
+    );
+    for (const x of [-1, 0, 1])
+      assert.ok(
+        Math.abs(
+          surface(x, -4, s.time, defaults, s) -
+            surface(x, -4, before.time, defaults, before),
+        ) < 0.01,
+        "wave popped after wind changed",
+      );
+  }
+  assert.equal(initial().windOffsetX, 0);
+  assert.equal(initial().windOffsetZ, 0);
 });

@@ -46,6 +46,8 @@ export type State = {
   windX: number;
   windZ: number;
   intensity: number;
+  windOffsetX: number;
+  windOffsetZ: number;
   time: number;
   collision: boolean;
 };
@@ -59,6 +61,8 @@ export const initial = (): State => ({
   windX: 0,
   windZ: 0,
   intensity: 0,
+  windOffsetX: 0,
+  windOffsetZ: 0,
   time: 0,
   collision: false,
 });
@@ -68,10 +72,12 @@ export function surface(
   z: number,
   t: number,
   p: Params,
-  intensity: number,
-  windX = 0,
-  windZ = 0,
+  wind: Pick<
+    State,
+    "intensity" | "windX" | "windZ" | "windOffsetX" | "windOffsetZ"
+  >,
 ) {
+  const { intensity, windX, windZ, windOffsetX, windOffsetZ } = wind;
   const a = p.ripple * (1 + intensity * 0.55);
   const waves =
     a *
@@ -93,8 +99,11 @@ export function surface(
     p.damping *
     agitation *
     0.5 *
-    (Math.sin(2.4 * x + 1.2 * z - t * (2.4 * wx + 1.2 * wz)) +
-      0.5 * Math.sin(-1.1 * x + 2.8 * z - t * (-1.1 * wx + 2.8 * wz)));
+    (Math.sin(2.4 * x + 1.2 * z - (2.4 * windOffsetX + 1.2 * windOffsetZ)) +
+      0.5 *
+        Math.sin(
+          -1.1 * x + 2.8 * z - (-1.1 * windOffsetX + 2.8 * windOffsetZ),
+        ));
   return waves + eddy + windWaves;
 }
 export function current(x: number, z: number, t: number, p: Params) {
@@ -113,11 +122,11 @@ export function flowField(x: number, z: number, t: number, p: Params) {
     dz = z - obstacle.z;
   const speed = current(x, z, t, p);
   const approach =
-    Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 2.2) ** 2));
+    Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 1.7) ** 2));
   const split = Math.tanh((dx - 0.15) * 3);
   const wake = Math.exp(-(((dz + 2) / 2.5) ** 2)) * Math.exp(-((dx / 2) ** 2));
   const lateral =
-    speed * 1.65 * approach * split +
+    speed * 0.85 * approach * split +
     p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
   return { x: lateral, z: -speed * (1 - 0.35 * approach) };
 }
@@ -137,6 +146,10 @@ export function step(
   if (!input.raise && !input.lower) s.intensity *= Math.exp(-dt * 0.32);
   s.windX += (input.x * (magnitude ? 1 : 0) - s.windX) * k;
   s.windZ += (input.z * (magnitude ? 1 : 0) - s.windZ) * k;
+  // Integrate velocity rather than recomputing phase from total session time.
+  // Reversing or changing wind cannot teleport an existing ripple pattern.
+  s.windOffsetX += s.windX * p.windStrength * s.intensity * dt;
+  s.windOffsetZ += s.windZ * p.windStrength * s.intensity * dt;
   const flow = flowField(s.x, s.z, s.time, p);
   const wind = p.windStrength * s.intensity;
   const targetX = flow.x + s.windX * wind;
@@ -168,8 +181,7 @@ export function step(
     s.z = -27;
     s.vz = 0;
   }
-  const targetY =
-    surface(s.x, s.z, s.time, p, s.intensity, s.windX, s.windZ) + 0.05;
+  const targetY = surface(s.x, s.z, s.time, p, s) + 0.05;
   s.vy += (targetY - s.y) * p.buoyancy * dt;
   s.vy *= Math.exp(-3 * dt);
   s.y += s.vy * dt;

@@ -23,7 +23,7 @@ try {
     "WebGL is unavailable. Update your graphics driver or try a browser with WebGL2 enabled.";
   throw new Error("WebGL renderer unavailable");
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, defaults.quality));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 app.prepend(renderer.domElement);
@@ -190,76 +190,25 @@ function render(dt: number) {
   const started = performance.now();
   const attr = geometry.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < attr.count; i++)
-    attr.setY(
-      i,
-      surface(
-        attr.getX(i),
-        attr.getZ(i),
-        state.time,
-        p,
-        state.intensity,
-        state.windX,
-        state.windZ,
-      ),
-    );
+    attr.setY(i, surface(attr.getX(i), attr.getZ(i), state.time, p, state));
   attr.needsUpdate = true;
   const deformed = performance.now();
   geometry.computeVertexNormals();
   const normals = performance.now();
   foam.position.y =
-    surface(
-      obstacle.x + obstacle.r,
-      obstacle.z,
-      state.time,
-      p,
-      state.intensity,
-      state.windX,
-      state.windZ,
-    ) + 0.035;
+    surface(obstacle.x + obstacle.r, obstacle.z, state.time, p, state) + 0.035;
   leaf.position.set(state.x, state.y, state.z);
   const eps = 0.15;
   leaf.rotation.z =
     Math.atan2(
-      surface(
-        state.x + eps,
-        state.z,
-        state.time,
-        p,
-        state.intensity,
-        state.windX,
-        state.windZ,
-      ) -
-        surface(
-          state.x - eps,
-          state.z,
-          state.time,
-          p,
-          state.intensity,
-          state.windX,
-          state.windZ,
-        ),
+      surface(state.x + eps, state.z, state.time, p, state) -
+        surface(state.x - eps, state.z, state.time, p, state),
       2 * eps,
     ) * p.alignment;
   leaf.rotation.x =
     -Math.atan2(
-      surface(
-        state.x,
-        state.z + eps,
-        state.time,
-        p,
-        state.intensity,
-        state.windX,
-        state.windZ,
-      ) -
-        surface(
-          state.x,
-          state.z - eps,
-          state.time,
-          p,
-          state.intensity,
-          state.windX,
-          state.windZ,
-        ),
+      surface(state.x, state.z + eps, state.time, p, state) -
+        surface(state.x, state.z - eps, state.time, p, state),
       2 * eps,
     ) * p.alignment;
   leaf.rotation.y = Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3;
@@ -270,7 +219,9 @@ function render(dt: number) {
   );
   camera.position.lerp(cameraTarget, 1 - Math.exp(-p.cameraSmoothing * dt));
   camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, p.quality));
+  const pixelRatio = Math.min(devicePixelRatio, p.quality);
+  if (renderer.getPixelRatio() !== pixelRatio)
+    renderer.setPixelRatio(pixelRatio);
   const renderStart = performance.now();
   renderer.render(scene, camera);
   if (profiling) {
@@ -337,8 +288,8 @@ window.render_game_to_text = () =>
     manual,
     profile: samples,
     waterHeights: [
-      surface(0, -4, state.time, p, state.intensity, state.windX, state.windZ),
-      surface(1, -4, state.time, p, state.intensity, state.windX, state.windZ),
+      surface(0, -4, state.time, p, state),
+      surface(1, -4, state.time, p, state),
     ],
   });
 if (manual)

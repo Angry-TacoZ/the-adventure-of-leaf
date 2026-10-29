@@ -17,6 +17,20 @@ try {
     if (m.type() === "error") errors.push(m.text());
   });
   await page.addInitScript(() => {
+    window.bufferWrites = 0;
+    for (const name of ["width", "height"]) {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        HTMLCanvasElement.prototype,
+        name,
+      );
+      Object.defineProperty(HTMLCanvasElement.prototype, name, {
+        ...descriptor,
+        set(value) {
+          window.bufferWrites++;
+          descriptor.set.call(this, value);
+        },
+      });
+    }
     window.mockPad = {
       connected: true,
       mapping: "standard",
@@ -35,6 +49,42 @@ try {
     await page.evaluate(() => typeof window.advanceTime),
     "undefined",
   );
+  const settle = () =>
+    page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          let count = 0;
+          function frame() {
+            if (++count === 12) resolve();
+            else requestAnimationFrame(frame);
+          }
+          requestAnimationFrame(frame);
+        }),
+    );
+  await settle();
+  const writes = await page.evaluate(() => window.bufferWrites);
+  await settle();
+  assert.equal(
+    await page.evaluate(() => window.bufferWrites),
+    writes,
+    "steady frames reset drawing buffer",
+  );
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await settle();
+  assert.deepEqual(
+    await page.locator("canvas").evaluate((c) => [c.width, c.height]),
+    [1100, 700],
+  );
+  const resized = await page.evaluate(() => window.bufferWrites);
+  assert.ok(resized > writes);
+  await settle();
+  assert.equal(
+    await page.evaluate(() => window.bufferWrites),
+    resized,
+    "resize continued every frame",
+  );
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await settle();
   const start = await read();
   await page.evaluate(() => {
     window.cameraTrack = [];
@@ -54,6 +104,7 @@ try {
   const passed = await read();
   assert.ok(passed.frames > start.frames + 100);
   assert.ok(passed.time > 8);
+  assert.ok(Math.abs(passed.x) < 2.5, "natural current drifted too near bank");
   assert.equal(passed.manual, false);
   assert.ok(passed.camera.z < start.camera.z - 8);
   assert.ok(Math.abs(passed.camera.x - passed.x) < 0.8);
@@ -112,7 +163,18 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(
     "output/web-game/realtime.json",
-    JSON.stringify({ start, passed, wind, maxCameraStep, errors }, null, 2),
+    JSON.stringify(
+      {
+        start,
+        passed,
+        wind,
+        maxCameraStep,
+        bufferWrites: { steady: writes, afterResize: resized },
+        errors,
+      },
+      null,
+      2,
+    ),
   );
   console.log(
     "Real animation frames: natural obstacle passage, camera follow, controller triggers/direction/disconnect, keyboard and neutral release passed",

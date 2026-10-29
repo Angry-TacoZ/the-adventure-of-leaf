@@ -71,6 +71,18 @@ await page.getByRole("button", { name: "River tuning · development" }).click();
 await page.getByText("Water / current").waitFor({ state: "visible" });
 await page.getByText("Save local preset").click();
 assert.ok(await page.evaluate(() => !!localStorage.getItem("leaf-tuning")));
+// Quality changes must still resize the drawing buffer after removing per-frame resets.
+const quality = page.getByRole("textbox", { name: "quality", exact: true });
+await quality.fill("0.5");
+await quality.press("Enter");
+await page.waitForFunction(
+  () => document.querySelector("canvas").width === 640,
+);
+await quality.fill("1");
+await quality.press("Enter");
+await page.waitForFunction(
+  () => document.querySelector("canvas").width === 1280,
+);
 assert.deepEqual(errors, []);
 const fallback = await browser.newPage();
 await fallback.addInitScript(() => {
