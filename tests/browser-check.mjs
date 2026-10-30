@@ -125,6 +125,8 @@ await page.evaluate(() => window.setWaterOptics(1, 1));
 await hideOverlays.evaluate((e) => e.remove());
 assert.ok((await read()).waterOptics.captures > 0);
 assert.deepEqual(errors, []);
+// Close the first WebGL page before creating another to avoid competing render loops.
+await page.close();
 // Reproduce the calm, low-camera frame where water previously cut into the blade.
 const leafPage = await browser.newPage({
   viewport: { width: 1280, height: 720 },

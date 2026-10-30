@@ -78,7 +78,7 @@ export const obstacles = [
   obstacle,
   { x: -2.3, z: -31, r: 0.85 },
   { x: 1.2, z: -54, r: 1 },
-  { x: -2.4, z: -78, r: 1.1 },
+  { x: -2.0, z: -78, r: 1.1 },
 ];
 export function surface(
   x: number,
