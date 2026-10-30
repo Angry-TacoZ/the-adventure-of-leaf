@@ -44,6 +44,11 @@ const sun = new THREE.DirectionalLight(0xffefcc, 2);
 sun.position.set(-6, 14, 8);
 scene.add(sun);
 const p: Params = { ...defaults };
+const qualityControl = document.querySelector<HTMLSelectElement>("#quality")!;
+if (import.meta.env.DEV) qualityControl.closest("label")!.hidden = true;
+qualityControl.addEventListener("change", () => {
+  p.quality = Number(qualityControl.value);
+});
 let state = initial();
 camera.position.set(
   state.x,

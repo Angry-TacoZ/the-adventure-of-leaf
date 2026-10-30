@@ -62,6 +62,16 @@ try {
         }),
     );
   await settle();
+  await page.locator("#quality").selectOption("0.5");
+  await page.waitForFunction(
+    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 256,
+  );
+  assert.equal(await page.locator("canvas").evaluate((c) => c.width), 640);
+  await page.locator("#quality").selectOption("1");
+  await page.waitForFunction(
+    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 512,
+  );
+  await settle();
   const writes = await page.evaluate(() => window.bufferWrites);
   await settle();
   assert.equal(
