@@ -166,13 +166,14 @@ test("moving leaf generates localized ripples that fade at rest", () => {
   );
 });
 
-test("leaf travels beyond old invisible boundary and stops inside river end", () => {
+test("leaf repeatedly loops to the start without resetting wind", () => {
   const s = initial();
   run(s, 40, 1 / 120);
   assert.ok(s.z < -35);
-  run(s, 100, 1 / 120);
-  assert.equal(s.z, -109.7);
-  assert.equal(s.vz, 0);
+  s.windLevel = 2;
+  run(s, 200, 1 / 120);
+  assert.ok(s.laps >= 2);
+  assert.equal(s.windLevel, 2);
 });
 
 test("each river rock participates in collision", () => {
@@ -196,7 +197,7 @@ test("calm current navigates the full river without pushing the leaf to the bank
     for (const rock of obstacles)
       assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
   }
-  assert.ok(s.z < -100, `stagnated at ${s.z}`);
+  assert.ok(s.laps >= 1, `stagnated at ${s.z}`);
   assert.ok(maxLateral < 2.8, `excessive bank deflection ${maxLateral}`);
 });
 
@@ -210,7 +211,7 @@ test("a leftward wind burst followed by neutral wind clears every rock", () => {
     for (const rock of obstacles)
       assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
   }
-  assert.ok(s.z < -100, `stuck at ${s.x}, ${s.z}`);
+  assert.ok(s.laps >= 1, `stuck at ${s.x}, ${s.z}`);
 });
 
 test("each obstacle leaves room for the leaf at both banks", () => {

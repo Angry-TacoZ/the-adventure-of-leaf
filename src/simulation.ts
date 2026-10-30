@@ -53,6 +53,7 @@ export type State = {
   windOffsetZ: number;
   time: number;
   collision: boolean;
+  laps: number;
 };
 export const initial = (): State => ({
   x: 0,
@@ -71,6 +72,7 @@ export const initial = (): State => ({
   windOffsetZ: 0,
   time: 0,
   collision: false,
+  laps: 0,
 });
 export const river = { start: 20, end: -110, stop: -109.7 };
 export const obstacle = { x: 0.25, z: -9, r: 1.05 };
@@ -233,8 +235,11 @@ export function step(
     }
   }
   if (s.z < river.stop) {
-    s.z = river.stop;
+    s.z = 0;
+    s.x = 0;
+    s.vx = 0;
     s.vz = 0;
+    s.laps++;
   }
   const targetY = surface(s.x, s.z, s.time, p, s) + 0.05;
   s.vy += (targetY - s.y) * p.buoyancy * dt;
