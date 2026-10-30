@@ -310,7 +310,14 @@ function input() {
   return { x, z, raise, lower, gamepad: !!gp };
 }
 function update(dt: number) {
+  const laps = state.laps;
   step(state, p, input(), dt);
+  if (state.laps !== laps)
+    camera.position.set(
+      state.x,
+      state.y + p.cameraHeight,
+      state.z + p.cameraDistance,
+    );
 }
 function render(dt: number) {
   const started = performance.now();

@@ -33,3 +33,5 @@ Applied supplied Ganges River Pebbles diffuse map to both banks with face-specif
 James requested a low close-follow camera. Defaults set to 0.65 m behind the leaf centre and 0.22 m above it; sliders support close adjustment. Rendered and browser-follow checks passed.
 
 - Added three more temporary river rocks, shared collision/current handling, and the supplied Coast Sand Rocks 02 diffuse texture on river and shore rocks. Tuned placement against calm-water bank drift; physical-controller and hardware-GPU playtesting remain open.
+
+- Added a temporary continuous river loop and a GitHub Pages deployment workflow. Visibility and Pages source are GitHub settings to apply separately; validate a live deployment after merge.

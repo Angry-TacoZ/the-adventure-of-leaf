@@ -152,6 +152,15 @@ assert.ok(
   bladePixel[0] > bladePixel[1] && bladePixel[0] > 160,
   `leaf obscured by water: ${bladePixel}`,
 );
+await leafPage.evaluate(() => window.advanceTime(150000));
+const looped = await leafPage.evaluate(() =>
+  JSON.parse(window.render_game_to_text()),
+);
+assert.ok(looped.laps >= 2, `expected repeated laps, got ${looped.laps}`);
+assert.ok(
+  Math.abs(looped.camera.z - looped.z - 0.65) < 1,
+  "camera did not follow loop",
+);
 await leafPage.close();
 const fallback = await browser.newPage();
 await fallback.addInitScript(() => {
