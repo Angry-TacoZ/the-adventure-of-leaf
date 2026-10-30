@@ -13,6 +13,21 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
+if (
+  import.meta.env.DEV &&
+  new URLSearchParams(location.search).has("probeWebGPU")
+) {
+  void import("./webgpu-probe").then(async ({ probeWebGPUBackend }) => {
+    try {
+      const backend = await probeWebGPUBackend(
+        new URLSearchParams(location.search).has("forceWebGL"),
+      );
+      console.info(`Experimental renderer initialized: ${backend}`);
+    } catch (error) {
+      console.error("Experimental renderer initialization failed", error);
+    }
+  });
+}
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGLRenderer;
