@@ -6,6 +6,7 @@ import {
   step,
   surface,
   obstacle,
+  obstacles,
 } from "../src/simulation.ts";
 const neutral = { x: 0, z: 0, raise: 0, lower: 0 };
 function run(s, seconds, dt, input = neutral) {
@@ -172,4 +173,29 @@ test("leaf travels beyond old invisible boundary and stops inside river end", ()
   run(s, 100, 1 / 120);
   assert.equal(s.z, -109.7);
   assert.equal(s.vz, 0);
+});
+
+test("each river rock participates in collision", () => {
+  for (const rock of obstacles) {
+    const s = initial();
+    s.x = rock.x;
+    s.z = rock.z + rock.r + 0.29;
+    s.vz = -2;
+    step(s, defaults, neutral, 1 / 120);
+    assert.ok(s.collision);
+    assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
+  }
+});
+
+test("calm current navigates the full river without pushing the leaf to the bank", () => {
+  const s = initial();
+  let maxLateral = 0;
+  for (let i = 0; i < 12000; i++) {
+    step(s, defaults, neutral, 1 / 120);
+    maxLateral = Math.max(maxLateral, Math.abs(s.x));
+    for (const rock of obstacles)
+      assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
+  }
+  assert.ok(s.z < -100, `stagnated at ${s.z}`);
+  assert.ok(maxLateral < 2.8, `excessive bank deflection ${maxLateral}`);
 });

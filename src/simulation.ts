@@ -74,6 +74,12 @@ export const initial = (): State => ({
 });
 export const river = { start: 20, end: -110, stop: -109.7 };
 export const obstacle = { x: 0.25, z: -9, r: 1.05 };
+export const obstacles = [
+  obstacle,
+  { x: -2.3, z: -31, r: 0.85 },
+  { x: 1.2, z: -54, r: 1 },
+  { x: -2.4, z: -78, r: 1.1 },
+];
 export function surface(
   x: number,
   z: number,
@@ -100,12 +106,16 @@ export function surface(
       Math.sin(x * 2.2 - z * 0.6 + t * 1.3) * 0.3 +
       Math.sin(z * 3.1 + x * 1.3 + t * 3) * 0.15) *
     p.damping;
-  const distance = Math.hypot(x - obstacle.x, z - obstacle.z);
-  const eddy =
-    p.turbulence *
-    0.12 *
-    Math.sin(distance * 5 - t * 3) *
-    Math.exp(-Math.max(0, distance - obstacle.r) * 1.8); // Advect two crossing ripple components by the same effective wind used by the leaf.
+  let eddy = 0;
+  for (const rock of obstacles) {
+    const distance = Math.hypot(x - rock.x, z - rock.z);
+    if (distance < 5)
+      eddy +=
+        p.turbulence *
+        0.12 *
+        Math.sin(distance * 5 - t * 3) *
+        Math.exp(-Math.max(0, distance - rock.r) * 1.8);
+  }
   const wx = windX * p.windStrength * intensity,
     wz = windZ * p.windStrength * intensity;
   const agitation = Math.min(1, Math.hypot(wx, wz));
@@ -149,17 +159,24 @@ export function current(x: number, z: number, t: number, p: Params) {
 // A local steering field approximates water splitting upstream and rejoining downstream.
 // The slight asymmetric split avoids an exact centreline stagnation point.
 export function flowField(x: number, z: number, t: number, p: Params) {
-  const dx = x - obstacle.x,
-    dz = z - obstacle.z;
   const speed = current(x, z, t, p);
-  const approach =
-    Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 1.7) ** 2));
-  const split = Math.tanh((dx - 0.15) * 3);
-  const wake = Math.exp(-(((dz + 2) / 2.5) ** 2)) * Math.exp(-((dx / 2) ** 2));
-  const lateral =
-    speed * 0.85 * approach * split +
-    p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
-  return { x: lateral, z: -speed * (1 - 0.35 * approach) };
+  let lateral = 0,
+    slowdown = 0;
+  for (const rock of obstacles) {
+    const dx = x - rock.x,
+      dz = z - rock.z;
+    if (Math.abs(dz) > 12) continue;
+    const approach =
+      Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 1.7) ** 2));
+    const split = Math.tanh((dx - 0.15) * 3);
+    const wake =
+      Math.exp(-(((dz + 2) / 2.5) ** 2)) * Math.exp(-((dx / 2) ** 2));
+    lateral +=
+      speed * 0.85 * approach * split +
+      p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
+    slowdown = Math.max(slowdown, approach * 0.35);
+  }
+  return { x: lateral, z: -speed * (1 - slowdown) };
 }
 export function step(
   s: State,
@@ -198,20 +215,22 @@ export function step(
   s.x = Math.max(-3.65, Math.min(3.65, s.x));
   if (Math.abs(s.x) >= 3.65) s.vx *= 0.1;
   s.collision = false;
-  const dx = s.x - obstacle.x,
-    dz = s.z - obstacle.z,
-    dist = Math.hypot(dx, dz);
-  if (dist < obstacle.r + 0.28) {
-    const nx = dist ? dx / dist : 1,
-      nz = dist ? dz / dist : 0;
-    s.x = obstacle.x + nx * (obstacle.r + 0.28);
-    s.z = obstacle.z + nz * (obstacle.r + 0.28);
-    const dot = s.vx * nx + s.vz * nz;
-    if (dot < 0) {
-      s.vx -= dot * nx * 1.15;
-      s.vz -= dot * nz * 1.15;
+  for (const rock of obstacles) {
+    const dx = s.x - rock.x,
+      dz = s.z - rock.z,
+      dist = Math.hypot(dx, dz);
+    if (dist < rock.r + 0.28) {
+      const nx = dist ? dx / dist : 1,
+        nz = dist ? dz / dist : 0;
+      s.x = rock.x + nx * (rock.r + 0.28);
+      s.z = rock.z + nz * (rock.r + 0.28);
+      const dot = s.vx * nx + s.vz * nz;
+      if (dot < 0) {
+        s.vx -= dot * nx * 1.15;
+        s.vz -= dot * nz * 1.15;
+      }
+      s.collision = true;
     }
-    s.collision = true;
   }
   if (s.z < river.stop) {
     s.z = river.stop;

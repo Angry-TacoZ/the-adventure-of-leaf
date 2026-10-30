@@ -8,6 +8,7 @@ import {
   current,
   flowField,
   obstacle,
+  obstacles,
   river,
   type Params,
 } from "./simulation";
@@ -107,6 +108,16 @@ const shoreMaterial = new THREE.MeshStandardMaterial({
   map: shoreTexture,
   roughness: 1,
 });
+const rockTexture = new THREE.TextureLoader().load(
+  `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
+);
+rockTexture.colorSpace = THREE.SRGBColorSpace;
+rockTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+const rockMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  map: rockTexture,
+  roughness: 1,
+});
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
   const bank = new THREE.Mesh(shoreGeometry, shoreMaterial);
@@ -116,36 +127,37 @@ for (const side of [-1, 1]) {
   for (let i = 0; i < 40; i++) {
     const rock = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.25 + (i % 4) * 0.13, 0),
-      new THREE.MeshStandardMaterial({
-        color: i % 2 ? 0x758078 : 0x879080,
-        roughness: 1,
-      }),
+      rockMaterial,
     );
     rock.position.set(side * (4.45 + (i % 3) * 0.5), 0.35, -i * 2.8 + 6);
     rock.scale.set(1.3, 0.65, 1);
     scene.add(rock);
   }
 }
-const rock = new THREE.Mesh(
-  new THREE.DodecahedronGeometry(obstacle.r, 1),
-  new THREE.MeshStandardMaterial({ color: 0x77847e, roughness: 0.95 }),
-);
-rock.position.set(obstacle.x, 0.32, obstacle.z);
-rock.scale.set(1, 0.75, 1);
-scene.add(rock);
-const foam = new THREE.Mesh(
-  new THREE.RingGeometry(1.1, 1.22, 48),
-  new THREE.MeshBasicMaterial({
-    color: 0xd1e4cb,
-    transparent: true,
-    opacity: 0.35,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  }),
-);
-foam.rotation.x = -Math.PI / 2;
-foam.position.set(obstacle.x, 0.08, obstacle.z);
-scene.add(foam);
+const foams: { mesh: THREE.Mesh; rock: typeof obstacle }[] = [];
+for (const rock of obstacles) {
+  const mesh = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(rock.r, 1),
+    rockMaterial,
+  );
+  mesh.position.set(rock.x, 0.32, rock.z);
+  mesh.scale.set(1, 0.75, 1);
+  scene.add(mesh);
+  const foam = new THREE.Mesh(
+    new THREE.RingGeometry(rock.r * 1.05, rock.r * 1.16, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0xd1e4cb,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  foam.rotation.x = -Math.PI / 2;
+  foam.position.set(rock.x, 0.08, rock.z);
+  scene.add(foam);
+  foams.push({ mesh: foam, rock });
+}
 const geometry = new THREE.PlaneGeometry(8.3, riverLength, 70, 480);
 geometry.translate(0, -riverCenter, 0);
 const optics = createRiverWater(geometry);
@@ -302,8 +314,9 @@ function render(dt: number) {
   const deformed = performance.now();
   geometry.computeVertexNormals();
   const normals = performance.now();
-  foam.position.y =
-    surface(obstacle.x + obstacle.r, obstacle.z, state.time, p, state) + 0.035;
+  for (const { mesh, rock } of foams)
+    mesh.position.y =
+      surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
   leaf.position.set(state.x, state.y, state.z);
   const eps = 0.15;
   leaf.rotation.z =
@@ -385,6 +398,7 @@ window.render_game_to_text = () =>
     ...state,
     current: current(state.x, state.z, state.time, p),
     obstacle,
+    obstacles,
     river,
     renderer: "WebGL2",
     waterOptics: optics.diagnostics(),

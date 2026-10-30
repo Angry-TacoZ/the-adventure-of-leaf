@@ -9,3 +9,5 @@ Reflection/refraction uses the MIT-licensed Three.js Reflector and Refractor add
 Riverbed: Low Tide Rocks diffuse 2K, Dimitrios Savva, [Poly Haven](https://polyhaven.com/a/low_tide_rocks), CC0 1.0. Supplied archive filename matches the published asset; source attribution is inferred from the matching name because the archive contains no license file. Only the supplied diffuse JPEG is used; EXR normal/roughness and displacement maps are not loaded.
 
 Riverbanks: Ganges River Pebbles diffuse 2K, Amal Kumar, [Poly Haven](https://polyhaven.com/a/ganges_river_pebbles), CC0 1.0. Attribution and source are inferred from the filename matching the published asset; the supplied archive has no license file. Only the diffuse JPEG is used; the supplied EXR normal/roughness and displacement maps are not loaded.
+
+Rock diffuse: Coast Sand Rocks 02, Rob Tuytel, [Poly Haven](https://polyhaven.com/a/coast_sand_rocks_02), CC0; source inferred from matching filename, as supplied archive includes no license file. Only diffuse JPEG is used.
