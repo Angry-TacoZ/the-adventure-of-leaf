@@ -125,6 +125,32 @@ await page.evaluate(() => window.setWaterOptics(1, 1));
 await hideOverlays.evaluate((e) => e.remove());
 assert.ok((await read()).waterOptics.captures > 0);
 assert.deepEqual(errors, []);
+// Reproduce the calm, low-camera frame where water previously cut into the blade.
+const leafPage = await browser.newPage({
+  viewport: { width: 1280, height: 720 },
+});
+await leafPage.goto(
+  `${process.env.LEAF_BASE_URL || "http://127.0.0.1:5173"}/?testMode=manual`,
+);
+await leafPage.waitForFunction(() => window.advanceTime);
+await leafPage.evaluate(() => window.advanceTime(51200));
+const leafImage = await leafPage.screenshot();
+const bladePixel = await leafPage.evaluate(async (encoded) => {
+  const image = new Image();
+  image.src = `data:image/png;base64,${encoded}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d");
+  context.drawImage(image, 0, 0);
+  return Array.from(context.getImageData(550, 680, 1, 1).data);
+}, leafImage.toString("base64"));
+assert.ok(
+  bladePixel[0] > bladePixel[1] && bladePixel[0] > 160,
+  `leaf obscured by water: ${bladePixel}`,
+);
+await leafPage.close();
 const fallback = await browser.newPage();
 await fallback.addInitScript(() => {
   HTMLCanvasElement.prototype.getContext = () => null;

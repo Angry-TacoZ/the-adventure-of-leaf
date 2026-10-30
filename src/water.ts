@@ -51,6 +51,7 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
+  let refractionExcluded: THREE.Object3D | undefined;
   let captures = 0;
   let captureSize = 512;
   mesh.onBeforeRender = (renderer, scene, camera, g, m, group) => {
@@ -59,7 +60,14 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
       reflection.matrixWorld.copy(mesh.matrixWorld);
       refraction.matrixWorld.copy(mesh.matrixWorld);
       reflection.onBeforeRender(renderer, scene, camera, g, reflected, group);
-      refraction.onBeforeRender(renderer, scene, camera, g, refracted, group);
+      const wasVisible = refractionExcluded?.visible;
+      if (refractionExcluded) refractionExcluded.visible = false;
+      try {
+        refraction.onBeforeRender(renderer, scene, camera, g, refracted, group);
+      } finally {
+        if (refractionExcluded && wasVisible !== undefined)
+          refractionExcluded.visible = wasVisible;
+      }
       captures++;
     } finally {
       mesh.visible = true;
@@ -68,6 +76,9 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   return {
     mesh,
     material,
+    excludeFromRefraction: (object: THREE.Object3D) => {
+      refractionExcluded = object;
+    },
     setQuality: (quality: number) => {
       const size = Math.round(512 * Math.min(1, Math.max(0.25, quality)));
       if (size !== captureSize) {

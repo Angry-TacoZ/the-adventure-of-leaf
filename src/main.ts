@@ -191,6 +191,8 @@ vein.position.y = 0.01;
 leaf.add(vein);
 leaf.scale.setScalar(0.48);
 scene.add(leaf);
+optics.excludeFromRefraction(leaf);
+const leafClearancePoint = new THREE.Vector3();
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
 const streakSegments = 12;
@@ -337,6 +339,28 @@ function render(dt: number) {
       2 * eps,
     ) * p.alignment;
   leaf.rotation.y = Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3;
+  // Keep the tilted blade above the locally sampled surface, without changing physics or camera.
+  let clearance = 0;
+  for (const x of [-0.3, -0.15, 0, 0.15, 0.3])
+    for (const z of [-0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45]) {
+      leafClearancePoint
+        .set(x, 0, z)
+        .applyEuler(leaf.rotation)
+        .add(leaf.position);
+      clearance = Math.max(
+        clearance,
+        surface(
+          leafClearancePoint.x,
+          leafClearancePoint.z,
+          state.time,
+          p,
+          state,
+        ) +
+          0.015 -
+          leafClearancePoint.y,
+      );
+    }
+  leaf.position.y += clearance;
   cameraTarget.set(
     state.x,
     state.y + p.cameraHeight,

@@ -12,3 +12,5 @@ Optics limitations: reflection/refraction clip around the mean surface plane; la
 Leaf ripples follow the leaf as a localized approximation; they do not persist as independently propagating wake history.
 
 Wind streaks are temporary visual indicators; their appearance needs James’s artistic acceptance. The longer water mesh has higher CPU and rendering cost, and physical GPU performance remains unmeasured.
+
+The rendered leaf is lifted locally when needed to clear the sampled water surface; this is an approximation and may appear to hover above sharp waves. The leaf is omitted from the refraction capture to avoid a displaced duplicate, but remains visible in reflections.
