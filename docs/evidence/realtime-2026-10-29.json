@@ -1,0 +1,128 @@
+{
+  "start": {
+    "coordinateSystem": "x right, z downstream is negative, y up",
+    "x": -0.00015640025681961197,
+    "y": 0.11146018115992234,
+    "z": -0.8934273121230707,
+    "vx": -0.00037182052490723126,
+    "vy": 0.04286008799270549,
+    "vz": -1.0830713695569918,
+    "windX": 0,
+    "windZ": 0,
+    "intensity": 0,
+    "windOffsetX": 0,
+    "windOffsetZ": 0,
+    "time": 1.2416666666666647,
+    "collision": false,
+    "current": 1.2285481687335433,
+    "obstacle": {
+      "x": 0.25,
+      "z": -9,
+      "r": 1.05
+    },
+    "renderer": "WebGL2",
+    "gamepad": true,
+    "flow": {
+      "x": -0.0008544006811855833,
+      "z": -1.2281262309227514
+    },
+    "camera": {
+      "x": -0.00008855085040675978,
+      "y": 4.600468904425113,
+      "z": 6.90015218113717
+    },
+    "frames": 66,
+    "manual": false,
+    "profile": [],
+    "waterHeights": [
+      -0.015043188862853147,
+      -0.022279108021028095
+    ]
+  },
+  "passed": {
+    "coordinateSystem": "x right, z downstream is negative, y up",
+    "x": -2.1229533805714063,
+    "y": -0.02055812548269349,
+    "z": -13.01560264005393,
+    "vx": -0.006316788241899399,
+    "vy": 0.011527319784282262,
+    "vz": -1.2203036529513462,
+    "windX": 0,
+    "windZ": 0,
+    "intensity": 0,
+    "windOffsetX": 0,
+    "windOffsetZ": 0,
+    "time": 11.983333333333293,
+    "collision": false,
+    "current": 1.2268997784625755,
+    "obstacle": {
+      "x": 0.25,
+      "z": -9,
+      "r": 1.05
+    },
+    "renderer": "WebGL2",
+    "gamepad": true,
+    "flow": {
+      "x": -0.002131236948076354,
+      "z": -1.226727342505313
+    },
+    "camera": {
+      "x": -2.1202404153907546,
+      "y": 4.485120052438811,
+      "z": -5.118898394840635
+    },
+    "frames": 520,
+    "manual": false,
+    "profile": [],
+    "waterHeights": [
+      -0.016073167219148025,
+      0.05004660575989992
+    ]
+  },
+  "wind": {
+    "coordinateSystem": "x right, z downstream is negative, y up",
+    "x": 0.353954870367887,
+    "y": 0.11712819075394425,
+    "z": -1.588084295814993,
+    "vx": 0.5422540114094088,
+    "vy": -0.03376160938504218,
+    "vz": -1.1752610344349859,
+    "windX": 0.9376505233103267,
+    "windZ": 0,
+    "intensity": 1,
+    "windOffsetX": 0.6538930050772811,
+    "windOffsetZ": 0,
+    "time": 1.8499999999999959,
+    "collision": false,
+    "current": 1.2061823339714177,
+    "obstacle": {
+      "x": 0.25,
+      "z": -9,
+      "r": 1.05
+    },
+    "renderer": "WebGL2",
+    "gamepad": true,
+    "flow": {
+      "x": -0.0005918212399718607,
+      "z": -1.2044069519946266
+    },
+    "camera": {
+      "x": 0.21598666620430287,
+      "y": 4.618013939632621,
+      "z": 6.21892464647952
+    },
+    "frames": 623,
+    "manual": false,
+    "profile": [],
+    "waterHeights": [
+      -0.09133441736790501,
+      0.00337376530970979
+    ]
+  },
+  "maxCameraStep": 0.05782979695767117,
+  "bufferWrites": {
+    "steady": 4,
+    "afterResize": 6
+  },
+  "errors": []
+}

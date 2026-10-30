@@ -1,0 +1,41 @@
+{
+  "name": "the-adventure-of-leaf",
+  "version": "0.0.0",
+  "description": "A Three.js / TypeScript / Vite game prototype for thatgamejam #02. James Lane is the creative director. See [game design](docs/GAME_DESIGN.md), [architecture](docs/ARCHITECTURE.md), and [known issues](docs/KNOWN_ISSUES.md).",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build",
+    "test": "node --test tests/*.test.mjs",
+    "verify": "npm run test && npm run build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:browser": "node tests/browser-runner.mjs",
+    "profile": "node scripts/profile.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Angry-TacoZ/the-adventure-of-leaf.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Angry-TacoZ/the-adventure-of-leaf/issues"
+  },
+  "homepage": "https://github.com/Angry-TacoZ/the-adventure-of-leaf#readme",
+  "dependencies": {
+    "lil-gui": "^0.21.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright": "^1.64.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "private": true
+}

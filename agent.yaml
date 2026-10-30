@@ -5,3 +5,10 @@ description: Game development engineering collaborator for The Adventure of Leaf
 model:
   preferred: ""
   fallback: []
+tools:
+  - cli
+  - read
+  - write
+  - memory
+runtime:
+  max_turns: 30
