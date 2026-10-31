@@ -37,3 +37,5 @@ James requested a low close-follow camera. Defaults set to 0.65 m behind the lea
 - Added a temporary continuous river loop and a GitHub Pages deployment workflow. Visibility and Pages source are GitHub settings to apply separately; validate a live deployment after merge.
 
 - PR #3: actual gameplay now initializes WebGPURenderer asynchronously. Replaced water with TSL reflection/scene-color refraction and removed the experimental probe, leaf lift, and exclusion. Forced WebGL2 and automatic fallback browser suites passed. Native WebGPU, refined optics, Rapier boundaries and remaining acceptance are unfinished.
+
+- Added depth-aware Snell projection, safe foreground UVs, bounded offsets, silhouette-depth rejection and path-length absorption. Added environmental sampling and typed presentation boundary with tests. Remaining: native WebGPU/hardware and optical acceptance, expanded transition/edge/wind scenarios and matched performance comparisons.

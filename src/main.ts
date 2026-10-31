@@ -13,6 +13,11 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
+import {
+  sampleEnvironment,
+  FIXED_STEP,
+  type LeafPose,
+} from "./physics-boundary";
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGPURenderer;
@@ -335,21 +340,17 @@ function render(dt: number) {
   for (const { mesh, rock } of foams)
     mesh.position.y =
       surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
-  leaf.position.set(state.x, state.y, state.z);
-  const eps = 0.15;
-  leaf.rotation.z =
-    Math.atan2(
-      surface(state.x + eps, state.z, state.time, p, state) -
-        surface(state.x - eps, state.z, state.time, p, state),
-      2 * eps,
-    ) * p.alignment;
-  leaf.rotation.x =
-    -Math.atan2(
-      surface(state.x, state.z + eps, state.time, p, state) -
-        surface(state.x, state.z - eps, state.time, p, state),
-      2 * eps,
-    ) * p.alignment;
-  leaf.rotation.y = Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3;
+  const environment = sampleEnvironment(state.x, state.z, state, p);
+  const pose: LeafPose = {
+    position: { x: state.x, y: state.y, z: state.z },
+    rotation: {
+      x: -Math.atan(environment.slopeZ) * p.alignment,
+      z: Math.atan(environment.slopeX) * p.alignment,
+      y: Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3,
+    },
+  };
+  leaf.position.set(pose.position.x, pose.position.y, pose.position.z);
+  leaf.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
   if (submersionTest) {
     leaf.position.y =
       surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
@@ -395,9 +396,9 @@ function loop(now: number) {
   lastRender = now;
   if (!manual) {
     accumulator += dt;
-    while (accumulator >= 1 / 120) {
-      update(1 / 120);
-      accumulator -= 1 / 120;
+    while (accumulator >= FIXED_STEP) {
+      update(FIXED_STEP);
+      accumulator -= FIXED_STEP;
     }
   }
   render(manual ? 0 : dt);
@@ -476,6 +477,9 @@ if (import.meta.env.DEV) {
     waterFolder.add(p, "ripple", 0, 0.4, 0.01);
     waterFolder.add(p, "damping", 0, 1, 0.01);
     waterFolder.add(p, "quality", 0.5, 2, 0.1);
+    waterFolder.add(optics.absorption.value, "x", 0, 2, 0.01).name("red absorption");
+    waterFolder.add(optics.absorption.value, "y", 0, 2, 0.01).name("green absorption");
+    waterFolder.add(optics.absorption.value, "z", 0, 2, 0.01).name("blue absorption");
     const phys = gui.addFolder("Wind / leaf");
     phys.add(p, "deadzone", 0, 0.4, 0.01);
     phys.add(p, "windCurve", 0.4, 3, 0.1);
