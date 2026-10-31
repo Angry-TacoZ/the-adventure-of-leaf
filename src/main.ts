@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
 import {
   defaults,
@@ -13,38 +13,27 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
-if (
-  import.meta.env.DEV &&
-  new URLSearchParams(location.search).has("probeWebGPU")
-) {
-  void import("./webgpu-probe").then(async ({ probeWebGPUBackend }) => {
-    try {
-      const backend = await probeWebGPUBackend(
-        new URLSearchParams(location.search).has("forceWebGL"),
-      );
-      console.info(`Experimental renderer initialized: ${backend}`);
-    } catch (error) {
-      console.error("Experimental renderer initialization failed", error);
-    }
-  });
-}
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
-let renderer: THREE.WebGLRenderer;
+let renderer: THREE.WebGPURenderer;
 try {
-  renderer = new THREE.WebGLRenderer({
+  renderer = new THREE.WebGPURenderer({
+    forceWebGL:
+      import.meta.env.DEV &&
+      new URLSearchParams(location.search).has("forceWebGL"),
     antialias: true,
-    powerPreference: "high-performance",
   });
+  await renderer.init();
 } catch {
   document.querySelector("#error")!.textContent =
-    "WebGL is unavailable. Update your graphics driver or try a browser with WebGL2 enabled.";
-  throw new Error("WebGL renderer unavailable");
+    "Graphics initialization failed. Enable WebGPU or WebGL2 and update your graphics driver.";
+  throw new Error("WebGPU and WebGL2 renderer unavailable");
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio, defaults.quality));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 app.prepend(renderer.domElement);
+const backend = "isWebGPUBackend" in renderer.backend ? "WebGPU" : "WebGL2";
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa7c8ba);
 scene.fog = new THREE.Fog(0xa7c8ba, 25, 65);
@@ -80,7 +69,7 @@ bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
 const riverLength = river.start - river.end;
 const riverCenter = (river.start + river.end) / 2;
 bedTexture.repeat.set(8.3 / 2.2, riverLength / 2.2);
-bedTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+bedTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(200, 200),
   new THREE.MeshStandardMaterial({
@@ -109,7 +98,7 @@ const shoreTexture = new THREE.TextureLoader().load(
 );
 shoreTexture.colorSpace = THREE.SRGBColorSpace;
 shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
-shoreTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+shoreTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const shoreGeometry = new THREE.BoxGeometry(5, 1.1, riverLength);
 const shorePositions = shoreGeometry.getAttribute("position");
 const shoreNormals = shoreGeometry.getAttribute("normal");
@@ -132,7 +121,7 @@ const rockTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
 );
 rockTexture.colorSpace = THREE.SRGBColorSpace;
-rockTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+rockTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const rockMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   map: rockTexture,
@@ -206,8 +195,7 @@ vein.position.y = 0.01;
 leaf.add(vein);
 leaf.scale.setScalar(0.48);
 scene.add(leaf);
-optics.excludeFromRefraction(leaf);
-const leafClearancePoint = new THREE.Vector3();
+
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
 const streakSegments = 12;
@@ -290,6 +278,7 @@ const samples: {
   render: number;
 }[] = [];
 const cameraTarget = new THREE.Vector3();
+let submersionTest: { offset: number; pitch: number } | undefined;
 function input() {
   let x =
     (keys.has("d") || keys.has("arrowright") ? 1 : 0) -
@@ -361,28 +350,11 @@ function render(dt: number) {
       2 * eps,
     ) * p.alignment;
   leaf.rotation.y = Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3;
-  // Keep the tilted blade above the locally sampled surface, without changing physics or camera.
-  let clearance = 0;
-  for (const x of [-0.3, -0.15, 0, 0.15, 0.3])
-    for (const z of [-0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45]) {
-      leafClearancePoint
-        .set(x, 0, z)
-        .applyEuler(leaf.rotation)
-        .add(leaf.position);
-      clearance = Math.max(
-        clearance,
-        surface(
-          leafClearancePoint.x,
-          leafClearancePoint.z,
-          state.time,
-          p,
-          state,
-        ) +
-          0.015 -
-          leafClearancePoint.y,
-      );
-    }
-  leaf.position.y += clearance;
+  if (submersionTest) {
+    leaf.position.y =
+      surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
+    leaf.rotation.set(submersionTest.pitch, 0, 0);
+  }
   cameraTarget.set(
     state.x,
     state.y + p.cameraHeight,
@@ -390,6 +362,10 @@ function render(dt: number) {
   );
   camera.position.lerp(cameraTarget, 1 - Math.exp(-p.cameraSmoothing * dt));
   camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
+  if (submersionTest) {
+    camera.position.set(state.x, state.y + 1.4, state.z + 2);
+    camera.lookAt(state.x, state.y - 0.1, state.z);
+  }
   const pixelRatio = Math.min(devicePixelRatio, p.quality);
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
@@ -407,7 +383,7 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
-  diag.textContent = `WebGL2 · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
+  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
 }
 let lastInterval = 0;
 function loop(now: number) {
@@ -451,7 +427,8 @@ window.render_game_to_text = () =>
     obstacle,
     obstacles,
     river,
-    renderer: "WebGL2",
+    renderer: backend,
+    rendererEngine: "WebGPURenderer",
     waterOptics: optics.diagnostics(),
     windStreaks: streakGeometry.drawRange.count / (6 * streakSegments),
     gamepad: input().gamepad,
@@ -470,9 +447,18 @@ window.render_game_to_text = () =>
     ],
   });
 if (manual)
+  Object.assign(window, {
+    clearLeafSubmersion: () => {
+      submersionTest = undefined;
+    },
+    setLeafSubmersion: (offset: number, pitch = 0) => {
+      submersionTest = { offset, pitch };
+    },
+  });
+if (manual)
   window.setWaterOptics = (reflection: number, refraction: number) => {
-    optics.material.uniforms.reflectionWeight.value = reflection;
-    optics.material.uniforms.refractionWeight.value = refraction;
+    optics.reflectionWeight.value = reflection;
+    optics.refractionWeight.value = refraction;
   };
 if (manual)
   window.advanceTime = (ms: number) => {

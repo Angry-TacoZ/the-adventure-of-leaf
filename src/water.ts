@@ -1,96 +1,66 @@
-import * as THREE from "three";
-import { Reflector } from "three/addons/objects/Reflector.js";
-import { Refractor } from "three/addons/objects/Refractor.js";
+import * as THREE from "three/webgpu";
+import {
+  reflector,
+  viewportTexture,
+  screenUV,
+  normalWorld,
+  positionWorld,
+  cameraPosition,
+  float,
+  vec3,
+  vec4,
+  mix,
+  uniform,
+} from "three/tsl";
 
-// Scene captures are supplied by Three.js's MIT-licensed planar helpers.
-// The displaced geometry and its normals still come from the shared CPU surface.
+// The opaque scene (including the complete leaf) is captured before transparent water.
+// Both captures are supported by WebGPURenderer and its WebGL2 backend.
 export function createRiverWater(geometry: THREE.BufferGeometry) {
-  const options = { textureWidth: 512, textureHeight: 512, clipBias: 0.003 };
-  const reflection = new Reflector(geometry, options);
-  const refraction = new Refractor(geometry, options);
-  const reflected = reflection.material as THREE.ShaderMaterial;
-  const refracted = refraction.material as THREE.ShaderMaterial;
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      reflectionMap: { value: reflection.getRenderTarget().texture },
-      refractionMap: { value: refraction.getRenderTarget().texture },
-      reflectionMatrix: reflected.uniforms.textureMatrix,
-      refractionMatrix: refracted.uniforms.textureMatrix,
-      reflectionWeight: { value: 1 },
-      refractionWeight: { value: 1 },
-    },
-    vertexShader: `varying vec3 worldPoint; varying vec3 worldNormal; varying vec3 localPoint;
-  void main(){localPoint=position;worldPoint=(modelMatrix*vec4(position,1.)).xyz;worldNormal=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*vec4(worldPoint,1.);}`,
-    fragmentShader: `uniform sampler2D reflectionMap; uniform sampler2D refractionMap;
-  uniform mat4 reflectionMatrix; uniform mat4 refractionMatrix;
-  uniform float reflectionWeight; uniform float refractionWeight;
-  varying vec3 worldPoint; varying vec3 worldNormal; varying vec3 localPoint;
-  vec2 projected(vec4 p){return p.xy/p.w;}
-  float edgeFade(vec2 uv){return smoothstep(0.,.02,uv.x)*smoothstep(0.,.02,uv.y)*smoothstep(0.,.02,1.-uv.x)*smoothstep(0.,.02,1.-uv.y);}
-  void main(){
-   vec3 N=normalize(worldNormal);vec3 eye=normalize(cameraPosition-worldPoint);
-   float fresnel=.02037+.97963*pow(1.-max(dot(N,eye),0.),5.);
-   vec3 ray=refract(-eye,N,1./1.333);
-   // Shallow riverbed approximation: bend the viewing ray to the existing bed.
-   float distanceToBed=max(0.,worldPoint.y+.41)/max(.08,-ray.y);
-   vec3 bedPoint=worldPoint+ray*distanceToBed;
-   vec3 bedLocal=vec3(bedPoint.x,-bedPoint.z,bedPoint.y);
-   vec2 refractedUV=projected(refractionMatrix*vec4(bedLocal,1.));
-   vec2 reflectedUV=projected(reflectionMatrix*vec4(localPoint,1.))+N.xz*.025;
-   vec3 above=texture2D(reflectionMap,clamp(reflectedUV,vec2(.001),vec2(.999))).rgb;
-   vec2 originalUV=projected(refractionMatrix*vec4(localPoint,1.));
-   vec3 undistorted=texture2D(refractionMap,clamp(originalUV,vec2(.001),vec2(.999))).rgb;
-   vec3 below=mix(undistorted,texture2D(refractionMap,clamp(refractedUV,vec2(.001),vec2(.999))).rgb,edgeFade(refractedUV));
-   vec3 tint=vec3(.12,.31,.29);
-   below=mix(tint,below,refractionWeight)*vec3(.72,.93,.9);
-   above=mix(tint,above,reflectionWeight*edgeFade(reflectedUV));
-   gl_FragColor=vec4(mix(below,above,fresnel),1.);
-   #include <tonemapping_fragment>
-   #include <colorspace_fragment>
-  }`,
+  const reflection = reflector({ resolutionScale: 0.5, bounces: false });
+  const reflectionWeight = uniform(1);
+  const refractionWeight = uniform(1);
+  const eye = cameraPosition.sub(positionWorld).normalize();
+  const fresnel = float(0.02037).add(
+    float(0.97963).mul(float(1).sub(normalWorld.dot(eye).max(0)).pow(5)),
+  );
+  const refractedUV = screenUV
+    .add(normalWorld.xz.mul(0.012))
+    .clamp(0.001, 0.999);
+  const below = viewportTexture(refractedUV).rgb.mul(vec3(0.72, 0.93, 0.9));
+  const tint = vec3(0.12, 0.31, 0.29);
+  const material = new THREE.MeshBasicNodeMaterial({
+    transparent: true,
+    depthWrite: false,
   });
+  material.outputNode = vec4(
+    mix(
+      mix(tint, below, refractionWeight),
+      mix(tint, reflection.rgb, reflectionWeight),
+      fresnel,
+    ),
+    1,
+  );
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
-  let refractionExcluded: THREE.Object3D | undefined;
+  mesh.add(reflection.target);
   let captures = 0;
-  let captureSize = 512;
-  mesh.onBeforeRender = (renderer, scene, camera, g, m, group) => {
-    mesh.visible = false;
-    try {
-      reflection.matrixWorld.copy(mesh.matrixWorld);
-      refraction.matrixWorld.copy(mesh.matrixWorld);
-      reflection.onBeforeRender(renderer, scene, camera, g, reflected, group);
-      const wasVisible = refractionExcluded?.visible;
-      if (refractionExcluded) refractionExcluded.visible = false;
-      try {
-        refraction.onBeforeRender(renderer, scene, camera, g, refracted, group);
-      } finally {
-        if (refractionExcluded && wasVisible !== undefined)
-          refractionExcluded.visible = wasVisible;
-      }
-      captures++;
-    } finally {
-      mesh.visible = true;
-    }
+  mesh.onBeforeRender = () => {
+    captures++;
   };
   return {
     mesh,
     material,
-    excludeFromRefraction: (object: THREE.Object3D) => {
-      refractionExcluded = object;
-    },
-    setQuality: (quality: number) => {
-      const size = Math.round(512 * Math.min(1, Math.max(0.25, quality)));
-      if (size !== captureSize) {
-        reflection.getRenderTarget().setSize(size, size);
-        refraction.getRenderTarget().setSize(size, size);
-        captureSize = size;
-      }
+    reflectionWeight,
+    refractionWeight,
+    setQuality(value: number) {
+      reflection.reflector.resolutionScale =
+        0.5 * Math.min(1, Math.max(0.25, value));
     },
     diagnostics: () => ({
-      mode: "planar-reflection-and-snells-refraction",
+      mode: "node-planar-reflection-and-screen-refraction",
       captures,
-      size: captureSize,
+      size: (reflection.value.image as { width: number }).width,
+      height: (reflection.value.image as { height: number }).height,
     }),
   };
 }

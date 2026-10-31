@@ -35,3 +35,16 @@ Same host/Chromium/SwiftShader, DPR 1, quality 1, with two 512-square captures p
 ## Extended river and wind indicators
 
 A single SwiftShader run after extending the river, before the final brush-stroke tuning, measured mean frame intervals 90.16 ms at 1280×720 and 125.21 ms at 1920×1080. CPU deformation plus normals averaged about 10.14 ms and 9.92 ms respectively. The mesh has twice as many lengthwise subdivisions to preserve wave spacing. Raw data: evidence/profile-long-river.json. These software-only figures are not RTX or other physical GPU measurements, and the final ribbon version has not been profiled separately.
+
+## PR #3 first gameplay-renderer increment
+
+Single local Chromium/ANGLE SwiftShader run, initialized backend WebGL2 through WebGPURenderer, DPR 1 and quality 1. Raw results: evidence/profile-webgpu-fallback.json. This is software rendering, not an RTX or native WebGPU measurement.
+
+| Viewport | Samples | Mean / p95 frame interval ms | Mean CPU deformation / normals ms | Mean CPU render submission ms | Reflection target |
+|---|---:|---:|---:|---:|---|
+| 1280×720 | 57 | 145.02 / 250.00 | 5.92 / 4.10 | 1.19 | 640×360 |
+| 1920×1080 | 28 | 114.88 / 500.00 | 6.06 / 4.51 | 1.25 | 960×540 |
+
+The short sample and large scheduling variation do not support a resolution scaling or performance-improvement claim. Earlier legacy measurements above are historical and were not repeated under matched conditions for this increment. GPU completion timings, native WebGPU, memory growth and resource-leak testing remain unfinished. The new pipeline uses one planar reflection pass and a viewport-color copy rather than the legacy reflection and refraction scene passes. Reflection resolution now follows buffer size; it is not held at the old 512-square size. CPU geometry is retained to keep the physics and visual surface synchronized.
+
+Hardware procedure: use a WebGPU-enabled browser on HTTPS or localhost, run normal gameplay without forceWebGL, and verify text diagnostics report rendererEngine=WebGPURenderer and renderer=WebGPU. Record browser/GPU/driver and the profile output before comparing to fallback. In development, ?forceWebGL forces the fallback; production ignores that query. A fallback pass is not WebGPU validation.

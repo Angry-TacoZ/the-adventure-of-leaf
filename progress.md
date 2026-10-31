@@ -35,3 +35,5 @@ James requested a low close-follow camera. Defaults set to 0.65 m behind the lea
 - Added three more temporary river rocks, shared collision/current handling, and the supplied Coast Sand Rocks 02 diffuse texture on river and shore rocks. Tuned placement against calm-water bank drift; physical-controller and hardware-GPU playtesting remain open.
 
 - Added a temporary continuous river loop and a GitHub Pages deployment workflow. Visibility and Pages source are GitHub settings to apply separately; validate a live deployment after merge.
+
+- PR #3: actual gameplay now initializes WebGPURenderer asynchronously. Replaced water with TSL reflection/scene-color refraction and removed the experimental probe, leaf lift, and exclusion. Forced WebGL2 and automatic fallback browser suites passed. Native WebGPU, refined optics, Rapier boundaries and remaining acceptance are unfinished.
