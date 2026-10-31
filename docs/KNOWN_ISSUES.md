@@ -7,10 +7,8 @@
 - CPU timings and software-rendered frame intervals are recorded in PERFORMANCE.md; representative physical GPU performance remains unverified. The CPU-updated water mesh may be costly. The Vite build reports a large JavaScript chunk. The quality control changes rendering pixel ratio and optical capture resolution; it does not change simulation complexity.
 - No Windows or Mac executable is packaged or tested. The jam requires one. AI disclosure and all dependency/asset licenses need final review before submission.
 
-Optics limitations: reflection/refraction clip around the mean surface plane; large crests, partly submerged objects and screen edges can show capture artifacts. Refraction assumes the riverbed is at y=-0.41, with no arbitrary submerged-mesh ray tracing. No caustics, multiple scattering, underwater camera or artistic-fidelity acceptance is claimed. Two extra scene passes add rendering cost; hardware GPU performance remains unverified.
+Optics migration limitations: the new node water uses planar reflection and a screen-space scene-color offset for refraction. It now includes depth-aware sample rejection and optical-path attenuation; full waterline continuity and edge acceptance remain unverified. Reflected geometry and submerged leaf screenshots are visible on the WebGL2 backend; native hardware WebGPU, optics parity and resource-leak testing remain unverified. PR #3 remains unfinished.
 
 Leaf ripples follow the leaf as a localized approximation; they do not persist as independently propagating wake history.
 
 Wind streaks are temporary visual indicators; their appearance needs James’s artistic acceptance. The longer water mesh has higher CPU and rendering cost, and physical GPU performance remains unmeasured.
-
-The rendered leaf is lifted locally when needed to clear the sampled water surface; this is an approximation and may appear to hover above sharp waves. The leaf is omitted from the refraction capture to avoid a displaced duplicate, but remains visible in reflections.

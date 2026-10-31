@@ -17,6 +17,7 @@ try {
     if (m.type() === "error") errors.push(m.text());
   });
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "gpu", { value: undefined });
     window.bufferWrites = 0;
     for (const name of ["width", "height"]) {
       const descriptor = Object.getOwnPropertyDescriptor(
@@ -64,12 +65,12 @@ try {
   await settle();
   await page.locator("#quality").selectOption("0.5");
   await page.waitForFunction(
-    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 256,
+    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 160,
   );
   assert.equal(await page.locator("canvas").evaluate((c) => c.width), 640);
   await page.locator("#quality").selectOption("1");
   await page.waitForFunction(
-    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 512,
+    () => JSON.parse(window.render_game_to_text()).waterOptics.size === 640,
   );
   await settle();
   const writes = await page.evaluate(() => window.bufferWrites);
@@ -96,6 +97,8 @@ try {
   await page.setViewportSize({ width: 1280, height: 720 });
   await settle();
   const start = await read();
+  assert.equal(start.rendererEngine, "WebGPURenderer");
+  assert.equal(start.renderer, "WebGL2");
   await page.evaluate(() => {
     window.cameraTrack = [];
     function observe() {

@@ -26,13 +26,15 @@ await page.addInitScript(() => {
   });
 });
 await page.goto(
-  `${process.env.LEAF_BASE_URL || "http://127.0.0.1:5173"}/?testMode=manual`,
+  `${process.env.LEAF_BASE_URL || "http://127.0.0.1:5173"}/?testMode=manual&forceWebGL`,
 );
 await page.waitForFunction(() => window.render_game_to_text);
 const read = async () =>
   JSON.parse(await page.evaluate(() => window.render_game_to_text()));
 let s = await read();
 assert.equal(s.gamepad, true);
+assert.equal(s.rendererEngine, "WebGPURenderer");
+assert.equal(s.renderer, "WebGL2");
 await page.evaluate(() => window.advanceTime(2000));
 let n = await read();
 assert.ok(n.z < s.z - 1);
@@ -90,7 +92,7 @@ await quality.press("Enter");
 await page.waitForFunction(
   () => document.querySelector("canvas").width === 640,
 );
-assert.equal((await read()).waterOptics.size, 256);
+assert.equal((await read()).waterOptics.size, 160);
 await quality.fill("1");
 await quality.press("Enter");
 await page.waitForFunction(
@@ -132,27 +134,75 @@ const leafPage = await browser.newPage({
   viewport: { width: 1280, height: 720 },
 });
 await leafPage.goto(
-  `${process.env.LEAF_BASE_URL || "http://127.0.0.1:5173"}/?testMode=manual`,
+  `${process.env.LEAF_BASE_URL || "http://127.0.0.1:5173"}/?testMode=manual&forceWebGL`,
 );
 await leafPage.waitForFunction(() => window.advanceTime);
 await leafPage.evaluate(() => window.advanceTime(51200));
 const leafImage = await leafPage.screenshot();
-const bladePixel = await leafPage.evaluate(async (encoded) => {
-  const image = new Image();
-  image.src = `data:image/png;base64,${encoded}`;
-  await image.decode();
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const context = canvas.getContext("2d");
-  context.drawImage(image, 0, 0);
-  return Array.from(context.getImageData(550, 680, 1, 1).data);
-}, leafImage.toString("base64"));
-assert.ok(
-  bladePixel[0] > bladePixel[1] && bladePixel[0] > 160,
-  `leaf obscured by water: ${bladePixel}`,
-);
-await leafPage.evaluate(() => window.advanceTime(150000));
+// The renderer now permits submersion; compare complete frames rather than a single pixel.
+const submersionImages = [];
+for (const [name, offset, pitch] of [
+  ["above", 0.14, 0],
+  ["partial", 0, 0.35],
+  ["submerged", -0.18, 0],
+]) {
+  await leafPage.evaluate(
+    ([offset, pitch]) => {
+      window.setLeafSubmersion(offset, pitch);
+      window.advanceTime(0);
+    },
+    [offset, pitch],
+  );
+  submersionImages.push(
+    await leafPage.screenshot({ path: `output/web-game/leaf-${name}.png` }),
+  );
+  const silhouette = await leafPage.evaluate(async (encoded) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${encoded}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, 0, 0);
+    const pixels = ctx.getImageData(400, 180, 480, 400).data;
+    let count = 0,
+      minX = 480,
+      maxX = 0,
+      minY = 400,
+      maxY = 0;
+    for (let y = 0; y < 400; y++)
+      for (let x = 0; x < 480; x++) {
+        const i = (y * 480 + x) * 4;
+        if (
+          pixels[i] > 90 &&
+          pixels[i + 1] > 85 &&
+          pixels[i + 2] < pixels[i] * 0.45 &&
+          pixels[i + 2] < pixels[i + 1] * 0.45
+        ) {
+          count++;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    return {
+      count,
+      fill: count / Math.max(1, (maxX - minX + 1) * (maxY - minY + 1)),
+    };
+  }, submersionImages.at(-1).toString("base64"));
+  assert.ok(
+    silhouette.count > 1000 && silhouette.fill > 0.45,
+    `${name}: missing/fragmented leaf ${JSON.stringify(silhouette)}`,
+  );
+}
+assert.notDeepEqual(submersionImages[0], submersionImages[1]);
+assert.notDeepEqual(submersionImages[1], submersionImages[2]);
+await leafPage.evaluate(() => {
+  window.clearLeafSubmersion();
+  window.advanceTime(150000);
+});
 const looped = await leafPage.evaluate(() =>
   JSON.parse(window.render_game_to_text()),
 );
@@ -171,7 +221,7 @@ await fallback.goto(process.env.LEAF_BASE_URL || "http://127.0.0.1:5173/");
 await fallback.getByRole("alert").waitFor();
 assert.match(
   await fallback.getByRole("alert").textContent(),
-  /WebGL is unavailable/,
+  /Graphics initialization failed/,
 );
 await fallback.close();
 console.log(
