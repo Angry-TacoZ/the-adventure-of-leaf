@@ -67,3 +67,24 @@ A separate instrumented native WebGPU run at 1440×900 collected 30 renderer tim
 Both migration backends were checked through 12 alternating resize/quality changes and a subsequent 60-second rendering soak. The final repeated-size snapshots and post-soak tracked counters matched: 88 geometries, 15 programs, 2 render targets, 14 textures. Raw counters and byte estimates are saved beside the timings. Stable engine counters over this bounded test do not prove absence of long-duration or driver-level leaks. Browser/page closure handles the test contexts. No claim of disposal correctness for a future route/scene replacement is made.
 
 Raw evidence: evidence/verification-2026-10-31/matched-software.json, matched-hardware.json and chrome-webgpu.json. Run scripts/compare-renderers.mjs with LEAF_BASELINE_URL and LEAF_BASE_URL pointing to separate dev servers. LEAF_PROFILE_NATIVE=1 selects installed Chrome with normal hardware selection; the default uses bundled Chromium/SwiftShader.
+
+## Final performance pass — 2026-11-01
+
+The comparison used DPR 1, quality 1, 1280×720 and 1920×1080, the same scene, and a 512×512 reflection target in both pipelines. A development-only benchmark overrides the migration reflector target to match main; normal gameplay retains its quality-dependent resolution. Chrome was launched with frame-rate and GPU-vsync limits disabled. Each case records 60 frame intervals after 30 warmup frames; the small samples and substantial scheduling outliers make individual averages unstable. Ablations individually omit reflection, depth, color capture, water, or CPU surface updates only in development benchmarks; they are not gameplay modes and their costs are not additive.
+
+| Environment and pipeline | 720p mean frame interval | 1080p mean frame interval |
+|---|---:|---:|
+| SwiftShader, main WebGL2, before | 17.13 ms | 115.12 ms |
+| SwiftShader, migration, before | 108.26 ms | 207.31 ms |
+| SwiftShader, migration, after depth-copy change | 39.44 ms | 215.24 ms |
+| RTX 4090, main WebGL2 | 8.8 ms | 8.6 ms |
+| RTX 4090, migration WebGL2 fallback, before | 8.5 ms | 8.5 ms |
+| RTX 4090, migration WebGL2 fallback, after | 8.51 ms | 8.57 ms |
+| RTX 4090, migration native WebGPU, before | 12.5 ms | 12.1 ms |
+| RTX 4090, migration native WebGPU, after | 11.45 ms | 12.33 ms |
+
+The software timings are highly variable: for example, a 720p main mean exceeded its p95 because of extreme outliers. They do not establish the size of an improvement from the depth-copy change. The matched hardware fallback was close to main on this one GPU, suggesting the large software regression is especially pronounced in SwiftShader; other hardware and drivers remain untested. The unpaced WebGPU run was slower than main in this sample. CPU water deformation and normals dominated these frame intervals: the no-surface benchmark averaged roughly 0.8–0.9 ms on hardware, while normal water updates averaged approximately 7 ms on main and 10–11 ms with native WebGPU. This is an ablation, not a production optimization or proof of a single cause.
+
+The water pass previously triggered four depth framebuffer copies and one color copy per frame. Sharing the depth texture reduces this to one depth and one color copy, verified on both backends without removing the depth rejection or optics. At the tested camera and leaf poses the six before/after images had no pixels differing by more than 3/255 in any color channel. Reflection, depth and color ablations were individually recorded; their noisy frame intervals do not support assigning the software slowdown to one effect. The remaining software regression warrants future profiling.
+
+A separate RTX 4090 WebGL2 `EXT_disjoint_timer_query_webgl2` baseline measured mean/p95 GPU elapsed times of 0.709/1.193 ms at 720p and 0.769/1.373 ms at 1080p. Native WebGPU renderer timestamp samples after the change measured 0.048/0.131 ms and 0.050/0.131 ms respectively, quantized in 0.065536 ms increments with zeros. These APIs cover different scopes and cannot establish a relative GPU speedup. No performance improvement is claimed from these non-equivalent GPU timers. Full samples, per-pass ablations, and test conditions are in evidence/performance-final-pass. The benchmark's reflector-resolution override uses a Three.js internal API and may require maintenance after a Three.js upgrade.

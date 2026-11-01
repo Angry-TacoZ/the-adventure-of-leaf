@@ -211,6 +211,14 @@ try {
   await page.waitForFunction(
     () => Math.abs(JSON.parse(window.render_game_to_text()).windX) < 0.1,
   );
+  // Development-only ablation flags cannot disable water in the production build.
+  await page.goto(base + "/?waterBenchmark=no-water");
+  await page.waitForFunction(
+    () =>
+      window.render_game_to_text &&
+      JSON.parse(window.render_game_to_text()).waterOptics.captures > 0,
+  );
+  assert.equal((await read()).benchmark, undefined);
   assert.deepEqual(errors, []);
   await writeFile(
     "output/web-game/realtime.json",

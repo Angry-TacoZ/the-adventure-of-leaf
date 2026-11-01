@@ -1,0 +1,6 @@
+{"backend": "software", "state": "above", "redMeanAbs": 0.0, "pixelsAbove3": 0, "fraction": 0.0}
+{"backend": "software", "state": "partial", "redMeanAbs": 0.0, "pixelsAbove3": 0, "fraction": 0.0}
+{"backend": "software", "state": "submerged", "redMeanAbs": 0.0, "pixelsAbove3": 0, "fraction": 0.0}
+{"backend": "hardware", "state": "above", "redMeanAbs": 3.2552083333333335e-06, "pixelsAbove3": 0, "fraction": 0.0}
+{"backend": "hardware", "state": "partial", "redMeanAbs": 5.4253472222222224e-06, "pixelsAbove3": 0, "fraction": 0.0}
+{"backend": "hardware", "state": "submerged", "redMeanAbs": 0.0, "pixelsAbove3": 0, "fraction": 0.0}

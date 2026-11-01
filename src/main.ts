@@ -42,6 +42,19 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 app.prepend(renderer.domElement);
 const backend = "isWebGPUBackend" in renderer.backend ? "WebGPU" : "WebGL2";
+const benchmarkMode = import.meta.env.DEV
+  ? new URLSearchParams(location.search).get("waterBenchmark")
+  : null;
+const benchmarkCopies = { depth: 0, color: 0 };
+if (benchmarkMode) {
+  const originalCopy = renderer.copyFramebufferToTexture.bind(renderer);
+  renderer.copyFramebufferToTexture = (texture, rectangle) => {
+    if (texture instanceof THREE.DepthTexture) benchmarkCopies.depth++;
+    else benchmarkCopies.color++;
+    return originalCopy(texture, rectangle);
+  };
+}
+
 if (
   import.meta.env.DEV &&
   new URLSearchParams(location.search).has("profileGPU")
@@ -349,11 +362,14 @@ function update(dt: number) {
 function render(dt: number) {
   const started = performance.now();
   const attr = geometry.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < attr.count; i++)
-    attr.setZ(i, surface(attr.getX(i), -attr.getY(i), state.time, p, state));
-  attr.needsUpdate = true;
+  const skipSurface = benchmarkMode === "no-surface";
+  if (!skipSurface) {
+    for (let i = 0; i < attr.count; i++)
+      attr.setZ(i, surface(attr.getX(i), -attr.getY(i), state.time, p, state));
+    attr.needsUpdate = true;
+  }
   const deformed = performance.now();
-  geometry.computeVertexNormals();
+  if (!skipSurface) geometry.computeVertexNormals();
   const normals = performance.now();
   for (const { mesh, rock } of foams)
     mesh.position.y =
@@ -456,6 +472,9 @@ window.render_game_to_text = () =>
     river,
     renderer: backend,
     rendererEngine: "WebGPURenderer",
+    benchmark: benchmarkMode
+      ? { mode: benchmarkMode, copies: benchmarkCopies }
+      : undefined,
     resources: { ...renderer.info.memory },
     waterOptics: optics.diagnostics(),
     windStreaks: streakGeometry.drawRange.count / (6 * streakSegments),

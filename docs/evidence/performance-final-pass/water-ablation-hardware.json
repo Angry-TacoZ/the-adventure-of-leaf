@@ -1,0 +1,138 @@
+{
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900KF",
+  "platform": "win32",
+  "results": [
+    {
+      "backend": "hardware",
+      "mode": "full",
+      "width": 1280,
+      "height": 720,
+      "browser": "156.0.8078.47",
+      "renderer": "WebGPU",
+      "engine": "WebGPURenderer",
+      "gpu": {
+        "vendor": "nvidia",
+        "architecture": "lovelace",
+        "isFallbackAdapter": false,
+        "features": [
+          "depth32float-stencil8",
+          "rg11b10ufloat-renderable",
+          "bgra8unorm-storage",
+          "texture-formats-tier1",
+          "texture-compression-bc",
+          "dual-source-blending",
+          "core-features-and-limits",
+          "float32-filterable",
+          "indirect-first-instance",
+          "float32-blendable",
+          "subgroup-size-control",
+          "texture-compression-unaligned",
+          "depth-clip-control",
+          "texture-compression-bc-sliced-3d",
+          "shader-f16",
+          "clip-distances",
+          "texture-formats-tier2",
+          "timestamp-query",
+          "primitive-index",
+          "texture-component-swizzle",
+          "subgroups"
+        ]
+      },
+      "stats": {
+        "frame": {
+          "mean": 11.448333333333332,
+          "p95": 12.299999999999955
+        },
+        "deform": {
+          "mean": 4.17000000278155,
+          "p95": 4.699999928474426
+        },
+        "normals": {
+          "mean": 5.558333327372869,
+          "p95": 6.200000047683716
+        },
+        "render": {
+          "mean": 1.1266666730244954,
+          "p95": 1.399999976158142
+        }
+      },
+      "copies": {
+        "depth": 91,
+        "color": 91
+      },
+      "frames": 91,
+      "optics": {
+        "mode": "node-planar-reflection-and-screen-refraction",
+        "captures": 91,
+        "size": 512,
+        "height": 512
+      }
+    },
+    {
+      "backend": "hardware",
+      "mode": "full",
+      "width": 1920,
+      "height": 1080,
+      "browser": "156.0.8078.47",
+      "renderer": "WebGPU",
+      "engine": "WebGPURenderer",
+      "gpu": {
+        "vendor": "nvidia",
+        "architecture": "lovelace",
+        "isFallbackAdapter": false,
+        "features": [
+          "depth32float-stencil8",
+          "rg11b10ufloat-renderable",
+          "bgra8unorm-storage",
+          "texture-formats-tier1",
+          "texture-compression-bc",
+          "dual-source-blending",
+          "core-features-and-limits",
+          "float32-filterable",
+          "indirect-first-instance",
+          "float32-blendable",
+          "subgroup-size-control",
+          "texture-compression-unaligned",
+          "depth-clip-control",
+          "texture-compression-bc-sliced-3d",
+          "timestamp-query",
+          "clip-distances",
+          "texture-formats-tier2",
+          "shader-f16",
+          "primitive-index",
+          "texture-component-swizzle",
+          "subgroups"
+        ]
+      },
+      "stats": {
+        "frame": {
+          "mean": 12.33,
+          "p95": 14.5
+        },
+        "deform": {
+          "mean": 4.423333330949148,
+          "p95": 5.399999976158142
+        },
+        "normals": {
+          "mean": 6.200000009934107,
+          "p95": 7.700000047683716
+        },
+        "render": {
+          "mean": 1.0816666662693024,
+          "p95": 1.399999976158142
+        }
+      },
+      "copies": {
+        "depth": 91,
+        "color": 91
+      },
+      "frames": 91,
+      "optics": {
+        "mode": "node-planar-reflection-and-screen-refraction",
+        "captures": 91,
+        "size": 512,
+        "height": 512
+      }
+    }
+  ]
+}

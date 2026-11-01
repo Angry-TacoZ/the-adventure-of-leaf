@@ -7,7 +7,6 @@ import {
   positionWorld,
   cameraPosition,
   float,
-  vec2,
   vec3,
   vec4,
   mix,
@@ -21,14 +20,23 @@ import {
   refract,
   getScreenPosition,
   cameraProjectionMatrix,
-  viewportSafeUV,
   smoothstep,
 } from "three/tsl";
 
 // The opaque scene (including the complete leaf) is captured before transparent water.
 // Both captures are supported by WebGPURenderer and its WebGL2 backend.
 export function createRiverWater(geometry: THREE.BufferGeometry) {
+  const benchmark = import.meta.env.DEV
+    ? new URLSearchParams(location.search).get("waterBenchmark")
+    : null;
   const reflection = reflector({ resolutionScale: 0.5, bounces: false });
+  // Benchmark-only: match the legacy renderer's fixed 512-square capture.
+  if (benchmark) {
+    const base = reflection.reflector as unknown as {
+      _updateResolution: (target: THREE.RenderTarget) => void;
+    };
+    base._updateResolution = (target) => target.setSize(512, 512);
+  }
   const reflectionWeight = uniform(1);
   const refractionWeight = uniform(1);
   const eye = cameraPosition.sub(positionWorld).normalize();
@@ -37,11 +45,9 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   );
   const absorption = uniform(new THREE.Vector3(0.35, 0.12, 0.08));
   const tint = vec3(0.12, 0.31, 0.29);
-  const sceneZ = perspectiveDepthToViewZ(
-    viewportDepthTexture(screenUV),
-    cameraNear,
-    cameraFar,
-  );
+  // Share one viewport depth capture across all depth samples in the same pass.
+  const sceneDepth = viewportDepthTexture();
+  const sceneZ = perspectiveDepthToViewZ(sceneDepth, cameraNear, cameraFar);
   const ray = refract(
     positionView.normalize(),
     normalView.normalize(),
@@ -65,19 +71,23 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const bounded = screenUV.add(
     offset.mul(float(0.015).div(offset.length().max(0.015))),
   );
-  const candidateUV = viewportSafeUV(mix(screenUV, bounded, edge)) as ReturnType<typeof vec2>;
+  const candidateUV = mix(screenUV, bounded, edge);
   const candidateZ = perspectiveDepthToViewZ(
-    viewportDepthTexture(candidateUV),
+    sceneDepth.sample(candidateUV),
     cameraNear,
     cameraFar,
   );
-  // Reject cross-silhouette samples rather than stretching a foreground/leaf edge.
+  // A less-negative view-space Z is in front of the water surface.
+  // Reject it exactly as viewportSafeUV does, while sharing the depth capture.
+  const foreground = candidateZ.greaterThan(positionView.z);
+  const safeUV = foreground.select(screenUV, candidateUV);
+  const safeZ = foreground.select(sceneZ, candidateZ);
   const continuity = float(1).sub(
-    smoothstep(0.03, 0.1, candidateZ.sub(sceneZ).abs()),
+    smoothstep(0.03, 0.1, safeZ.sub(sceneZ).abs()),
   );
-  const refractedUV = mix(screenUV, candidateUV, continuity);
+  const refractedUV = mix(screenUV, safeUV, continuity);
   const sampledZ = perspectiveDepthToViewZ(
-    viewportDepthTexture(refractedUV),
+    sceneDepth.sample(refractedUV),
     cameraNear,
     cameraFar,
   );
@@ -96,14 +106,21 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   });
   material.outputNode = vec4(
     mix(
-      mix(tint, below, refractionWeight),
-      mix(tint, reflection.rgb, reflectionWeight),
+      benchmark === "no-depth"
+        ? viewportTexture(screenUV).rgb
+        : benchmark === "no-color"
+          ? tint
+          : mix(tint, below, refractionWeight),
+      benchmark === "no-reflection"
+        ? tint
+        : mix(tint, reflection.rgb, reflectionWeight),
       fresnel,
     ),
     1,
   );
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
+  if (benchmark === "no-water") mesh.visible = false;
   mesh.add(reflection.target);
   let captures = 0;
   mesh.onBeforeRender = () => {
