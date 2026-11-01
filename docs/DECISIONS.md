@@ -4,3 +4,7 @@
 - Scene layout, colors and tuning in the prototype are temporary engineering choices, not approved final art direction.
 
 - 2026-10-29: James chose five persistent wind levels: calm plus four increasing strengths. Each right/left trigger press changes one level; this supersedes the earlier neutral-trigger automatic return to natural intensity. Neutral stick still removes directed wind.
+
+PR #3 working increment: replace legacy WebGLRenderer/Reflector/Refractor/ShaderMaterial with WebGPURenderer and a single TSL water material. Keep CPU deformation for agreement with physics; native GPU displacement is deferred until measured and compared. Use a screen-color capture so submerged opaque leaf geometry remains available; refine depth handling before artistic acceptance.
+
+Depth-refraction follow-up: use Three.js viewportSafeUV for foreground rejection, a projected Snell ray guided by sampled view depth, bounded displacement and depth-discontinuity fallback at silhouettes. Beer-Lambert RGB transmission depends on estimated optical path. This deliberately bounds screen-space limitations rather than pretending offscreen ray information exists.

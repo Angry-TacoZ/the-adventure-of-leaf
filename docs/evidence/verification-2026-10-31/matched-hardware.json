@@ -1,0 +1,337 @@
+[
+  {
+    "revision": "main-f69dc7d",
+    "width": 1280,
+    "height": 720,
+    "backend": "WebGL2",
+    "engine": "WebGLRenderer",
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 (0x00002684) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "browser": "156.0.8078.47",
+    "samples": 120,
+    "stats": {
+      "frame": {
+        "mean": 16.68,
+        "p95": 16.800000000000182
+      },
+      "deform": {
+        "mean": 4.0699999993046125,
+        "p95": 4.699999988079071
+      },
+      "normals": {
+        "mean": 3.1099999994039536,
+        "p95": 3.5
+      },
+      "render": {
+        "mean": 0.866666667163372,
+        "p95": 1.0999999642372131
+      }
+    },
+    "optics": {
+      "mode": "planar-reflection-and-snells-refraction",
+      "captures": 180,
+      "size": 512
+    }
+  },
+  {
+    "revision": "main-f69dc7d",
+    "width": 1920,
+    "height": 1080,
+    "backend": "WebGL2",
+    "engine": "WebGLRenderer",
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 (0x00002684) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "browser": "156.0.8078.47",
+    "samples": 120,
+    "stats": {
+      "frame": {
+        "mean": 16.68,
+        "p95": 16.799999999999955
+      },
+      "deform": {
+        "mean": 4.052499997615814,
+        "p95": 4.399999976158142
+      },
+      "normals": {
+        "mean": 3.0708333353201547,
+        "p95": 3.5
+      },
+      "render": {
+        "mean": 0.8916666676600774,
+        "p95": 1.100000023841858
+      }
+    },
+    "optics": {
+      "mode": "planar-reflection-and-snells-refraction",
+      "captures": 180,
+      "size": 512
+    }
+  },
+  {
+    "revision": "migration",
+    "width": 1280,
+    "height": 720,
+    "backend": "WebGPU",
+    "engine": "WebGPURenderer",
+    "gpu": {
+      "vendor": "nvidia",
+      "architecture": "lovelace",
+      "description": "",
+      "isFallbackAdapter": false
+    },
+    "browser": "156.0.8078.47",
+    "samples": 120,
+    "stats": {
+      "frame": {
+        "mean": 16.68,
+        "p95": 16.800000000000182
+      },
+      "deform": {
+        "mean": 4.119999997317791,
+        "p95": 4.600000023841858
+      },
+      "normals": {
+        "mean": 5.383333333333334,
+        "p95": 5.900000035762787
+      },
+      "render": {
+        "mean": 1.0033333346247673,
+        "p95": 1.199999988079071
+      }
+    },
+    "resources": {
+      "attributes": 252,
+      "attributesSize": 1148492,
+      "geometries": 88,
+      "indexAttributes": 10,
+      "indexAttributesSize": 811704,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 15,
+      "programsSize": 87333,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 14,
+      "texturesSize": 36865039,
+      "uniformBuffers": 192,
+      "uniformBuffersSize": 37728,
+      "total": 38950296
+    },
+    "optics": {
+      "mode": "node-planar-reflection-and-screen-refraction",
+      "captures": 180,
+      "size": 640,
+      "height": 360
+    },
+    "resourceCycles": [
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      }
+    ],
+    "after60s": {
+      "attributes": 252,
+      "attributesSize": 1148492,
+      "geometries": 88,
+      "indexAttributes": 10,
+      "indexAttributesSize": 811704,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 15,
+      "programsSize": 87333,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 14,
+      "texturesSize": 36865039,
+      "uniformBuffers": 192,
+      "uniformBuffersSize": 37728,
+      "total": 38950296
+    }
+  },
+  {
+    "revision": "migration",
+    "width": 1920,
+    "height": 1080,
+    "backend": "WebGPU",
+    "engine": "WebGPURenderer",
+    "gpu": {
+      "vendor": "nvidia",
+      "architecture": "lovelace",
+      "description": "",
+      "isFallbackAdapter": false
+    },
+    "browser": "156.0.8078.47",
+    "samples": 120,
+    "stats": {
+      "frame": {
+        "mean": 16.68,
+        "p95": 16.799999999999955
+      },
+      "deform": {
+        "mean": 4.055833334227403,
+        "p95": 4.599999964237213
+      },
+      "normals": {
+        "mean": 5.362499998509884,
+        "p95": 5.899999976158142
+      },
+      "render": {
+        "mean": 0.9616666674613953,
+        "p95": 1.199999988079071
+      }
+    },
+    "resources": {
+      "attributes": 252,
+      "attributesSize": 1148492,
+      "geometries": 88,
+      "indexAttributes": 10,
+      "indexAttributesSize": 811704,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 15,
+      "programsSize": 87333,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 14,
+      "texturesSize": 82945039,
+      "uniformBuffers": 192,
+      "uniformBuffersSize": 37728,
+      "total": 85030296
+    },
+    "optics": {
+      "mode": "node-planar-reflection-and-screen-refraction",
+      "captures": 180,
+      "size": 960,
+      "height": 540
+    }
+  }
+]

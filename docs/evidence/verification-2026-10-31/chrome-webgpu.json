@@ -1,0 +1,282 @@
+{
+  "browser": "156.0.8078.47",
+  "channel": "chrome",
+  "result": {
+    "available": true,
+    "info": {
+      "vendor": "nvidia",
+      "architecture": "lovelace",
+      "device": "",
+      "description": "",
+      "isFallbackAdapter": false
+    },
+    "gameplay": {
+      "coordinateSystem": "x right, z downstream is negative, y up",
+      "x": -0.000027018301787259765,
+      "y": 0.08655243482182975,
+      "z": -0.270283489331064,
+      "vx": -0.0000915768683462044,
+      "vy": 0.0064696314868186245,
+      "vz": -0.7765429076641106,
+      "windX": 0,
+      "windZ": 0,
+      "intensity": 0,
+      "windLevel": 0,
+      "raisePressed": false,
+      "lowerPressed": false,
+      "windOffsetX": 0,
+      "windOffsetZ": 0,
+      "time": 0.591666666666667,
+      "collision": false,
+      "laps": 0,
+      "current": 1.203323521136311,
+      "obstacle": {
+        "x": 0.25,
+        "z": -9,
+        "r": 1.05
+      },
+      "obstacles": [
+        {
+          "x": 0.25,
+          "z": -9,
+          "r": 1.05
+        },
+        {
+          "x": -2.3,
+          "z": -31,
+          "r": 0.85
+        },
+        {
+          "x": 1.2,
+          "z": -54,
+          "r": 1
+        },
+        {
+          "x": -2,
+          "z": -78,
+          "r": 1.1
+        }
+      ],
+      "river": {
+        "start": 20,
+        "end": -110,
+        "stop": -109.7
+      },
+      "renderer": "WebGPU",
+      "rendererEngine": "WebGPURenderer",
+      "resources": {
+        "attributes": 252,
+        "attributesSize": 1148492,
+        "geometries": 88,
+        "indexAttributes": 10,
+        "indexAttributesSize": 811704,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 15,
+        "programsSize": 87333,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 14,
+        "texturesSize": 36865039,
+        "uniformBuffers": 192,
+        "uniformBuffersSize": 37728,
+        "total": 38950296
+      },
+      "waterOptics": {
+        "mode": "node-planar-reflection-and-screen-refraction",
+        "captures": 21,
+        "size": 640,
+        "height": 360
+      },
+      "windStreaks": 0,
+      "gamepad": false,
+      "flow": {
+        "x": -0.00019984973691263648,
+        "z": -1.2032248126747462
+      },
+      "camera": {
+        "x": -0.000011680515334963845,
+        "y": 0.31113252796599816,
+        "z": 0.5271653432255305
+      },
+      "frames": 21,
+      "manual": false,
+      "profile": [
+        {
+          "frame": 16,
+          "deform": 8.100000023841858,
+          "normals": 5.399999976158142,
+          "render": 79.5
+        },
+        {
+          "frame": 99.89999999999998,
+          "deform": 7.199999988079071,
+          "normals": 14.800000011920929,
+          "render": 3.800000011920929
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 5.100000023841858,
+          "normals": 8.199999988079071,
+          "render": 2.5
+        },
+        {
+          "frame": 217,
+          "deform": 4.199999988079071,
+          "normals": 6.300000011920929,
+          "render": 92.39999997615814
+        },
+        {
+          "frame": 100.09999999999991,
+          "deform": 4.200000047683716,
+          "normals": 6.599999964237213,
+          "render": 2.199999988079071
+        },
+        {
+          "frame": 16.600000000000023,
+          "deform": 4.5,
+          "normals": 5.799999952316284,
+          "render": 2.100000023841858
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 5.300000011920929,
+          "normals": 5.699999988079071,
+          "render": 1.399999976158142
+        },
+        {
+          "frame": 16.600000000000023,
+          "deform": 4.600000023841858,
+          "normals": 6.5,
+          "render": 1.5
+        },
+        {
+          "frame": 16.699999999999932,
+          "deform": 5.100000023841858,
+          "normals": 5.899999976158142,
+          "render": 1.300000011920929
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 4.400000035762787,
+          "normals": 5.699999988079071,
+          "render": 1.5
+        },
+        {
+          "frame": 16.699999999999932,
+          "deform": 4.300000011920929,
+          "normals": 5.5,
+          "render": 1.399999976158142
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 4.099999964237213,
+          "normals": 5.5,
+          "render": 1.199999988079071
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 3.900000035762787,
+          "normals": 5.699999988079071,
+          "render": 1.5
+        },
+        {
+          "frame": 16.59999999999991,
+          "deform": 4.400000035762787,
+          "normals": 5.5,
+          "render": 1.0999999642372131
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 4,
+          "normals": 6,
+          "render": 1.0999999642372131
+        },
+        {
+          "frame": 16.600000000000023,
+          "deform": 3.900000035762787,
+          "normals": 5.299999952316284,
+          "render": 1.100000023841858
+        },
+        {
+          "frame": 16.699999999999932,
+          "deform": 3.899999976158142,
+          "normals": 5.600000023841858,
+          "render": 1
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 3.899999976158142,
+          "normals": 5.899999976158142,
+          "render": 1.100000023841858
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 3.900000035762787,
+          "normals": 5.099999964237213,
+          "render": 1.100000023841858
+        },
+        {
+          "frame": 16.700000000000045,
+          "deform": 4.100000023841858,
+          "normals": 5.099999964237213,
+          "render": 0.8999999761581421
+        },
+        {
+          "frame": 16.699999999999818,
+          "deform": 4.100000023841858,
+          "normals": 5.199999988079071,
+          "render": 1.199999988079071
+        }
+      ],
+      "waterHeights": [
+        0.052436017569751296,
+        0.018598532973544652
+      ]
+    },
+    "gpuTiming": {
+      "supported": true,
+      "samples": 30,
+      "width": 1440,
+      "height": 900,
+      "meanMs": 0.06553600000000002,
+      "p95Ms": 0.131072,
+      "raw": [
+        0.065536,
+        0,
+        0.065536,
+        0.065536,
+        0.131072,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.065536,
+        0,
+        0.065536,
+        0.131072,
+        0.065536,
+        0,
+        0,
+        0.131072,
+        0.065536,
+        0.131072,
+        0.065536,
+        0.065536,
+        0.065536,
+        0.131072,
+        0.065536,
+        0
+      ]
+    }
+  },
+  "errors": []
+}

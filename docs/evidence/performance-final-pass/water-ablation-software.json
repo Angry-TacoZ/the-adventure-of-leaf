@@ -1,0 +1,90 @@
+{
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900KF",
+  "platform": "win32",
+  "results": [
+    {
+      "backend": "software",
+      "mode": "full",
+      "width": 1280,
+      "height": 720,
+      "browser": "156.0.8078.4",
+      "renderer": "WebGL2",
+      "engine": "WebGPURenderer",
+      "gpu": {
+        "name": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": true
+      },
+      "stats": {
+        "frame": {
+          "mean": 39.434999999999995,
+          "p95": 274.2000000000003
+        },
+        "deform": {
+          "mean": 4.7349999964237215,
+          "p95": 7.099999904632568
+        },
+        "normals": {
+          "mean": 3.4733333329359692,
+          "p95": 5.599999904632568
+        },
+        "render": {
+          "mean": 33.17999999721845,
+          "p95": 273.7000000476837
+        }
+      },
+      "copies": {
+        "depth": 91,
+        "color": 91
+      },
+      "frames": 91,
+      "optics": {
+        "mode": "node-planar-reflection-and-screen-refraction",
+        "captures": 91,
+        "size": 512,
+        "height": 512
+      }
+    },
+    {
+      "backend": "software",
+      "mode": "full",
+      "width": 1920,
+      "height": 1080,
+      "browser": "156.0.8078.4",
+      "renderer": "WebGL2",
+      "engine": "WebGPURenderer",
+      "gpu": {
+        "name": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": true
+      },
+      "stats": {
+        "frame": {
+          "mean": 215.24000000000004,
+          "p95": 308.8000000000011
+        },
+        "deform": {
+          "mean": 5.785000004371008,
+          "p95": 8.299999952316284
+        },
+        "normals": {
+          "mean": 4.491666660706202,
+          "p95": 6.400000095367432
+        },
+        "render": {
+          "mean": 26.429999989271163,
+          "p95": 279.89999997615814
+        }
+      },
+      "copies": {
+        "depth": 91,
+        "color": 91
+      },
+      "frames": 91,
+      "optics": {
+        "mode": "node-planar-reflection-and-screen-refraction",
+        "captures": 91,
+        "size": 512,
+        "height": 512
+      }
+    }
+  ]
+}

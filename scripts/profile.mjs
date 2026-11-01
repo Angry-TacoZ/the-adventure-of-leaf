@@ -35,6 +35,7 @@ try {
     }
     const gl = await page.evaluate(() => {
       const g = document.querySelector("canvas").getContext("webgl2");
+      if (!g) return "WebGPU device details not captured by this profiler";
       const e = g.getExtension("WEBGL_debug_renderer_info");
       return e
         ? g.getParameter(e.UNMASKED_RENDERER_WEBGL)
@@ -47,6 +48,9 @@ try {
       samples: data.length,
       browser: browser.version(),
       renderer: gl,
+      backend: state.renderer,
+      engine: state.rendererEngine,
+      waterOptics: state.waterOptics,
       stats,
     });
     await page.close();
