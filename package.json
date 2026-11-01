@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/Angry-TacoZ/the-adventure-of-leaf#readme",
   "dependencies": {
+    "@dimforge/rapier3d": "^0.21.0",
     "lil-gui": "^0.21.0",
     "three": "^0.186.1"
   },
@@ -36,7 +37,8 @@
     "@types/three": "^0.186.0",
     "playwright": "^1.64.1",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vite-plugin-wasm": "^3.6.0"
   },
   "private": true
 }
