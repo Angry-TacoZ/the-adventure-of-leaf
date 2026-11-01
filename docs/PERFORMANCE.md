@@ -48,3 +48,22 @@ Single local Chromium/ANGLE SwiftShader run, initialized backend WebGL2 through 
 The short sample and large scheduling variation do not support a resolution scaling or performance-improvement claim. Earlier legacy measurements above are historical and were not repeated under matched conditions for this increment. GPU completion timings, native WebGPU, memory growth and resource-leak testing remain unfinished. The new pipeline uses one planar reflection pass and a viewport-color copy rather than the legacy reflection and refraction scene passes. Reflection resolution now follows buffer size; it is not held at the old 512-square size. CPU geometry is retained to keep the physics and visual surface synchronized.
 
 Hardware procedure: use a WebGPU-enabled browser on HTTPS or localhost, run normal gameplay without forceWebGL, and verify text diagnostics report rendererEngine=WebGPURenderer and renderer=WebGPU. Record browser/GPU/driver and the profile output before comparing to fallback. In development, ?forceWebGL forces the fallback; production ignores that query. A fallback pass is not WebGPU validation.
+
+## Matched verification follow-up — 2026-10-31
+
+Archived main f69dc7d and the migration were served separately with the same dependency tree. Each run used DPR 1, quality 1, 180 animation frames and the final 120 timing samples. Scenes were run sequentially; the reflection target differs by pipeline (main 512×512; migration 640×360 at 720p and 960×540 at 1080p). These are matched scene/settings comparisons, not isolated shader microbenchmarks.
+
+| Environment / pipeline | 720p mean / p95 ms | 1080p mean / p95 ms |
+|---|---:|---:|
+| Chromium 156.0.8078.4 / SwiftShader / main WebGLRenderer | 79.16 / 100.10 | 120.97 / 216.70 |
+| Same software environment / migration WebGL2 backend | 149.58 / 283.20 | 276.10 / 516.60 |
+| Chrome 156.0.8078.47 / RTX 4090 WebGL2 / main | 16.68 / 16.80 | 16.68 / 16.80 |
+| Same Chrome/host / non-fallback NVIDIA Lovelace WebGPU / migration | 16.68 / 16.80 | 16.68 / 16.80 |
+
+The software path regressed materially. The hardware results are display-paced and establish no throughput improvement. Native migration CPU deformation/normals averaged 4.12/5.38 ms at 720p and 4.06/5.36 ms at 1080p; main averaged 4.07/3.11 and 4.05/3.07 ms. Render submission averaged 1.00/0.96 ms for migration versus 0.87/0.89 ms for main. Do not attribute single-run differences to a specific cause without further profiling.
+
+A separate instrumented native WebGPU run at 1440×900 collected 30 renderer timestamp-query samples: mean 0.065536 ms and p95 0.131072 ms. Readings are quantized and include zeros. They are renderer-reported GPU render timestamps, not CPU frame intervals or a guarantee of end-to-end GPU latency. Timestamp tracking is development-only and opt-in with profileGPU; the matched comparison did not enable it.
+
+Both migration backends were checked through 12 alternating resize/quality changes and a subsequent 60-second rendering soak. The final repeated-size snapshots and post-soak tracked counters matched: 88 geometries, 15 programs, 2 render targets, 14 textures. Raw counters and byte estimates are saved beside the timings. Stable engine counters over this bounded test do not prove absence of long-duration or driver-level leaks. Browser/page closure handles the test contexts. No claim of disposal correctness for a future route/scene replacement is made.
+
+Raw evidence: evidence/verification-2026-10-31/matched-software.json, matched-hardware.json and chrome-webgpu.json. Run scripts/compare-renderers.mjs with LEAF_BASELINE_URL and LEAF_BASE_URL pointing to separate dev servers. LEAF_PROFILE_NATIVE=1 selects installed Chrome with normal hardware selection; the default uses bundled Chromium/SwiftShader.

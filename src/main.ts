@@ -27,6 +27,9 @@ try {
       import.meta.env.DEV &&
       new URLSearchParams(location.search).has("forceWebGL"),
     antialias: true,
+    trackTimestamp:
+      import.meta.env.DEV &&
+      new URLSearchParams(location.search).has("profileGPU"),
   });
   await renderer.init();
 } catch {
@@ -39,6 +42,21 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 app.prepend(renderer.domElement);
 const backend = "isWebGPUBackend" in renderer.backend ? "WebGPU" : "WebGL2";
+if (
+  import.meta.env.DEV &&
+  new URLSearchParams(location.search).has("profileGPU")
+) {
+  Object.assign(window, {
+    readVerificationGPUTime: async () => {
+      if (!renderer.hasFeature("timestamp-query")) return { supported: false };
+      await renderer.resolveTimestampsAsync();
+      return {
+        supported: true,
+        batchTimestampMs: renderer.info.render.timestamp,
+      };
+    },
+  });
+}
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xa7c8ba);
 scene.fog = new THREE.Fog(0xa7c8ba, 25, 65);
@@ -283,7 +301,7 @@ const samples: {
   render: number;
 }[] = [];
 const cameraTarget = new THREE.Vector3();
-let submersionTest: { offset: number; pitch: number } | undefined;
+let submersionTest: { offset: number; pitch: number; view: string } | undefined;
 function input() {
   let x =
     (keys.has("d") || keys.has("arrowright") ? 1 : 0) -
@@ -363,9 +381,17 @@ function render(dt: number) {
   );
   camera.position.lerp(cameraTarget, 1 - Math.exp(-p.cameraSmoothing * dt));
   camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
-  if (submersionTest) {
+  if (submersionTest?.view === "gameplay") {
+    camera.position.copy(cameraTarget);
+    camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
+  }
+  if (submersionTest && submersionTest.view !== "gameplay") {
     camera.position.set(state.x, state.y + 1.4, state.z + 2);
-    camera.lookAt(state.x, state.y - 0.1, state.z);
+    camera.lookAt(
+      state.x + (submersionTest.view === "edge" ? 1.6 : 0),
+      state.y - 0.1,
+      state.z,
+    );
   }
   const pixelRatio = Math.min(devicePixelRatio, p.quality);
   if (renderer.getPixelRatio() !== pixelRatio)
@@ -430,6 +456,7 @@ window.render_game_to_text = () =>
     river,
     renderer: backend,
     rendererEngine: "WebGPURenderer",
+    resources: { ...renderer.info.memory },
     waterOptics: optics.diagnostics(),
     windStreaks: streakGeometry.drawRange.count / (6 * streakSegments),
     gamepad: input().gamepad,
@@ -452,8 +479,11 @@ if (manual)
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
-    setLeafSubmersion: (offset: number, pitch = 0) => {
-      submersionTest = { offset, pitch };
+    setVerificationWaterVisible: (visible: boolean) => {
+      optics.mesh.visible = visible;
+    },
+    setLeafSubmersion: (offset: number, pitch = 0, view = "inspection") => {
+      submersionTest = { offset, pitch, view };
     },
   });
 if (manual)
@@ -477,9 +507,15 @@ if (import.meta.env.DEV) {
     waterFolder.add(p, "ripple", 0, 0.4, 0.01);
     waterFolder.add(p, "damping", 0, 1, 0.01);
     waterFolder.add(p, "quality", 0.5, 2, 0.1);
-    waterFolder.add(optics.absorption.value, "x", 0, 2, 0.01).name("red absorption");
-    waterFolder.add(optics.absorption.value, "y", 0, 2, 0.01).name("green absorption");
-    waterFolder.add(optics.absorption.value, "z", 0, 2, 0.01).name("blue absorption");
+    waterFolder
+      .add(optics.absorption.value, "x", 0, 2, 0.01)
+      .name("red absorption");
+    waterFolder
+      .add(optics.absorption.value, "y", 0, 2, 0.01)
+      .name("green absorption");
+    waterFolder
+      .add(optics.absorption.value, "z", 0, 2, 0.01)
+      .name("blue absorption");
     const phys = gui.addFolder("Wind / leaf");
     phys.add(p, "deadzone", 0, 0.4, 0.01);
     phys.add(p, "windCurve", 0.4, 3, 0.1);

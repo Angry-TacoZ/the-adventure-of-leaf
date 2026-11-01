@@ -12,10 +12,18 @@ export interface Vector3Data {
 }
 export interface LeafPose {
   position: Vector3Data;
+  /** Euler radians for the current rigid presentation. */
   rotation: Vector3Data;
+  /** Optional world quaternion for future physics-driven pieces; overrides Euler rotation. */
+  orientation?: Vector3Data & { w: number };
 }
 export interface LeafMeshData {
   id: string;
+  /** World pose for this piece; essential when disconnected pieces rotate independently. */
+  pose?: LeafPose;
+  /** Increment when indices or vertex-to-particle mapping changes. */
+  topologyRevision?: number;
+  vertexIds?: Uint32Array;
   positions: Float32Array;
   normals: Float32Array;
   uvs: Float32Array;

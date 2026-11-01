@@ -1,0 +1,7 @@
+{
+  "result": {
+    "available": false,
+    "reason": "requestAdapter returned null"
+  },
+  "errors": []
+}
