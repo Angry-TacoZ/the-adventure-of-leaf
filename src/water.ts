@@ -121,6 +121,10 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2;
   if (benchmark === "no-water") mesh.visible = false;
+  // Bias the flat reflection plane above the mean waterline. The animated
+  // surface otherwise exposes a strip of reflected sky where it meets a bank.
+  // Local Z maps to world Y after the water mesh is rotated.
+  reflection.target.position.z = 0.12;
   mesh.add(reflection.target);
   let captures = 0;
   mesh.onBeforeRender = () => {

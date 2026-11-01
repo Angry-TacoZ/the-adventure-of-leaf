@@ -1,0 +1,3 @@
+# Shoreline reflection comparison
+
+The native WebGPU images use the same 1920×1080 camera and manual simulation state after three seconds. The unmodified reflection has intermittent pale strips at the river banks; the biased reflection plane substantially reduces those strips while retaining visible reflections. The WebGL2 image is a separate gameplay capture at 1280×720. The reflection plane is an approximation of a moving surface, so the bias also changes reflected object alignment and can behave differently with unusually low cameras or extreme waves. It does not move the actual water, leaf, banks or physics.
