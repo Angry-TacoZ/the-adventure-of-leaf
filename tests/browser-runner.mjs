@@ -62,6 +62,7 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/depth-copy-check.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
+  await suite("dev", "tests/rapier-prototype-browser.mjs");
   await suite("dev", "tests/browser-check.mjs");
   await suite("preview", "tests/realtime-browser.mjs");
 }
