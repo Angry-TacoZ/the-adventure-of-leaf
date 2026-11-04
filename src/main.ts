@@ -206,6 +206,7 @@ const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
 const leafView = createLeafView();
+await leafView.ready;
 const leaf = leafView.group;
 onFinalPageHide(() => leafView.dispose());
 scene.add(leaf);
