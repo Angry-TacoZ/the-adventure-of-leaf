@@ -180,7 +180,7 @@ export function flowField(x: number, z: number, t: number, p: Params) {
   }
   return { x: lateral, z: -speed * (1 - slowdown) };
 }
-export function step(
+export function updateWind(
   s: State,
   p: Params,
   input: { x: number; z: number; raise: number; lower: number },
@@ -205,6 +205,14 @@ export function step(
   // Reversing or changing wind cannot teleport an existing ripple pattern.
   s.windOffsetX += s.windX * p.windStrength * s.intensity * dt;
   s.windOffsetZ += s.windZ * p.windStrength * s.intensity * dt;
+}
+export function step(
+  s: State,
+  p: Params,
+  input: { x: number; z: number; raise: number; lower: number },
+  dt: number,
+) {
+  updateWind(s, p, input, dt);
   const flow = flowField(s.x, s.z, s.time, p);
   const wind = p.windStrength * s.intensity;
   const targetX = flow.x + s.windX * wind;

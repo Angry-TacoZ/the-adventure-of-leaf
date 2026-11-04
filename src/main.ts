@@ -1,9 +1,10 @@
+import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
 import {
   defaults,
   initial,
-  step,
+  updateWind,
   surface,
   current,
   flowField,
@@ -13,11 +14,7 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
-import {
-  sampleEnvironment,
-  FIXED_STEP,
-  type LeafPose,
-} from "./physics-boundary";
+import { FIXED_STEP } from "./physics-boundary";
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGPURenderer;
@@ -90,6 +87,12 @@ qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
 });
 let state = initial();
+const physics = await createRiverLeaf().catch((error) => {
+  document.querySelector("#error")!.textContent =
+    "Physics initialization failed. Reload the page to retry.";
+  throw error;
+});
+window.addEventListener("pagehide", () => physics.dispose(), { once: true });
 camera.position.set(
   state.x,
   state.y + p.cameraHeight,
@@ -209,27 +212,43 @@ const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
 const leaf = new THREE.Group();
-const shape = new THREE.Shape();
-shape.moveTo(0, 0.95);
-shape.bezierCurveTo(0.75, 0.45, 0.65, -0.5, 0, -0.9);
-shape.bezierCurveTo(-0.65, -0.5, -0.75, 0.45, 0, 0.95);
+const leafGeometry = new THREE.BufferGeometry();
+const leafData = physics.readFrame().fragments![0];
+leafGeometry.setAttribute(
+  "position",
+  new THREE.BufferAttribute(leafData.positions, 3).setUsage(
+    THREE.DynamicDrawUsage,
+  ),
+);
+leafGeometry.setIndex(new THREE.BufferAttribute(leafData.indices!, 1));
 const blade = new THREE.Mesh(
-  new THREE.ShapeGeometry(shape, 16),
+  leafGeometry,
   new THREE.MeshStandardMaterial({
     color: 0xb5aa45,
     roughness: 0.8,
     side: THREE.DoubleSide,
   }),
 );
-blade.rotation.x = -Math.PI / 2;
 leaf.add(blade);
-const vein = new THREE.Mesh(
-  new THREE.BoxGeometry(0.025, 0.02, 1.6),
-  new THREE.MeshStandardMaterial({ color: 0x6f7235 }),
+const veinPositions = new Float32Array(9 * 6);
+const veinIndices: number[] = [];
+for (let i = 1; i < 9; i++) {
+  const a = (i - 1) * 2;
+  veinIndices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+}
+const veinGeometry = new THREE.BufferGeometry();
+veinGeometry.setAttribute(
+  "position",
+  new THREE.BufferAttribute(veinPositions, 3).setUsage(THREE.DynamicDrawUsage),
 );
-vein.position.y = 0.01;
+veinGeometry.setIndex(veinIndices);
+const vein = new THREE.Mesh(
+  veinGeometry,
+  new THREE.MeshStandardMaterial({ color: 0x6f7235, side: THREE.DoubleSide }),
+);
+vein.frustumCulled = false;
+blade.frustumCulled = false;
 leaf.add(vein);
-leaf.scale.setScalar(0.48);
 scene.add(leaf);
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
@@ -351,7 +370,8 @@ function input() {
 }
 function update(dt: number) {
   const laps = state.laps;
-  step(state, p, input(), dt);
+  updateWind(state, p, input(), dt);
+  physics.step(state, p);
   if (state.laps !== laps)
     camera.position.set(
       state.x,
@@ -374,17 +394,36 @@ function render(dt: number) {
   for (const { mesh, rock } of foams)
     mesh.position.y =
       surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
-  const environment = sampleEnvironment(state.x, state.z, state, p);
-  const pose: LeafPose = {
-    position: { x: state.x, y: state.y, z: state.z },
-    rotation: {
-      x: -Math.atan(environment.slopeZ) * p.alignment,
-      z: Math.atan(environment.slopeX) * p.alignment,
-      y: Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3,
-    },
-  };
-  leaf.position.set(pose.position.x, pose.position.y, pose.position.z);
-  leaf.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
+  physics.readFrame();
+  leafGeometry.attributes.position.needsUpdate = true;
+
+  const local = leafGeometry.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < local.count; i++)
+    local.setXYZ(
+      i,
+      local.getX(i) - state.x,
+      local.getY(i) - state.y,
+      local.getZ(i) - state.z,
+    );
+  leaf.position.set(state.x, state.y, state.z);
+  leaf.rotation.set(0, 0, 0);
+  leafGeometry.computeVertexNormals();
+  for (let row = 0; row < 9; row++) {
+    const i = row * 3 + 1;
+    veinPositions.set(
+      [
+        local.getX(i) - 0.006,
+        local.getY(i) + 0.004,
+        local.getZ(i),
+        local.getX(i) + 0.006,
+        local.getY(i) + 0.004,
+        local.getZ(i),
+      ],
+      row * 6,
+    );
+  }
+  veinGeometry.attributes.position.needsUpdate = true;
+  veinGeometry.computeVertexNormals();
   if (submersionTest) {
     leaf.position.y =
       surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
@@ -449,7 +488,10 @@ window.addEventListener("keydown", (e) => {
   keys.add(e.key.toLowerCase());
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
     e.preventDefault();
-  if (e.key.toLowerCase() === "r") state = initial();
+  if (e.key.toLowerCase() === "r") {
+    state = initial();
+    physics.reset();
+  }
   if (e.key.toLowerCase() === "f") {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void app.requestFullscreen();
@@ -466,6 +508,7 @@ window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
+    physics: physics.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,
