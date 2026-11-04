@@ -24,6 +24,9 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run build -- --base=/${{ github.event.repository.name }}/
+        env:
+          VITE_BUILD_REVISION: ${{ github.sha }}
+          VITE_DEVELOPMENT_PREVIEW: ${{ github.ref_name != 'main' }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
