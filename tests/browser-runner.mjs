@@ -59,6 +59,8 @@ async function suite(mode, script) {
   }
 }
 if (process.argv.includes("--optics")) {
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/bfcache-native-browser.mjs");
   await suite("dev", "tests/depth-copy-check.mjs");
   await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
