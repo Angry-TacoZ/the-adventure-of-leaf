@@ -92,6 +92,8 @@ A separate RTX 4090 WebGL2 `EXT_disjoint_timer_query_webgl2` baseline measured m
 
 ## Forest draw ablation — November 4, 2026
 
+Measured forest source: 3ba95c3. These samples predate the later physical opening, sky and fish increment; do not present them as a matched benchmark for that newer scene.
+
 Reproduce with a local dev server and `node scripts/profile-forest.mjs`; repeat with `LEAF_FOREST_QUALITY=0.5`. The script uses a fixed manual pose, 1280×720 CSS viewport, DPR 1, actual RAF-driven draws for four seconds per case and unchanged water reflection/refraction. The hidden case suppresses only forest drawing; geometry generation and owner update remain. Physics time stays fixed, so this is not a full gameplay benchmark. CPU: i9-13900KF, Windows. Native Chrome 156 and bundled Chromium 156/SwiftShader; a separate native adapter probe on this host reported NVIDIA Lovelace, non-fallback. High draws 35 active trees/317,520 leaf triangles; low draws 18/81,648, sharing existing buffers.
 
 | Backend | Quality | Forest | Samples | Mean RAF interval ms | Mean CPU deformation/submission ms | Mean renderer submission ms |

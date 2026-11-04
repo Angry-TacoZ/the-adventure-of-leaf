@@ -63,6 +63,10 @@ if (process.argv.includes("--optics")) {
     await suite("dev", "tests/bfcache-native-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/forest-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/opening-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/atmosphere-browser.mjs");
   await suite("dev", "tests/depth-copy-check.mjs");
   await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
@@ -71,6 +75,8 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/leaf-view-browser.mjs");
   await suite("dev", "tests/understory-browser.mjs");
   await suite("dev", "tests/forest-browser.mjs");
+  await suite("dev", "tests/opening-browser.mjs");
+  await suite("dev", "tests/atmosphere-browser.mjs");
   await suite("dev", "tests/rapier-prototype-browser.mjs");
   await suite("dev", "tests/rapier-gameplay-browser.mjs");
   await suite("dev", "tests/rapier-damage-browser.mjs");

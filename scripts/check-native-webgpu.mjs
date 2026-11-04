@@ -41,6 +41,11 @@ try {
     await page.waitForFunction(
       () => JSON.parse(window.render_game_to_text()).frames > 20,
     );
+    result.opening = await page.evaluate(() => JSON.parse(window.render_game_to_text()).opening);
+    await page.waitForFunction(() => {
+      const s = JSON.parse(window.render_game_to_text());
+      return s.opening.phase === "afloat" && s.z < 0;
+    }, null, { timeout: 60000 });
     result.gameplay = await page.evaluate(() =>
       JSON.parse(window.render_game_to_text()),
     );

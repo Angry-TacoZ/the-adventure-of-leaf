@@ -1,0 +1,382 @@
+{
+  "results": [
+    {
+      "view": "inspection",
+      "offset": 0.14,
+      "reference": 29057,
+      "actual": 29064,
+      "coverage": 1,
+      "area": 1.00024090580583
+    },
+    {
+      "view": "inspection",
+      "offset": 0.07,
+      "reference": 28587,
+      "actual": 28547,
+      "coverage": 1,
+      "area": 0.9986007625843915
+    },
+    {
+      "view": "inspection",
+      "offset": 0,
+      "reference": 28059,
+      "actual": 27999,
+      "coverage": 1,
+      "area": 0.9978616486688763
+    },
+    {
+      "view": "inspection",
+      "offset": -0.07,
+      "reference": 27557,
+      "actual": 27480,
+      "coverage": 1,
+      "area": 0.9972057916318903
+    },
+    {
+      "view": "inspection",
+      "offset": -0.14,
+      "reference": 27063,
+      "actual": 26969,
+      "coverage": 1,
+      "area": 0.9965266230647009
+    },
+    {
+      "view": "inspection",
+      "offset": -0.21,
+      "reference": 26571,
+      "actual": 26475,
+      "coverage": 1,
+      "area": 0.9963870385006209
+    },
+    {
+      "view": "inspection",
+      "offset": -0.14,
+      "reference": 27063,
+      "actual": 26969,
+      "coverage": 1,
+      "area": 0.9965266230647009
+    },
+    {
+      "view": "inspection",
+      "offset": -0.07,
+      "reference": 27557,
+      "actual": 27480,
+      "coverage": 1,
+      "area": 0.9972057916318903
+    },
+    {
+      "view": "inspection",
+      "offset": 0,
+      "reference": 28059,
+      "actual": 27999,
+      "coverage": 1,
+      "area": 0.9978616486688763
+    },
+    {
+      "view": "inspection",
+      "offset": 0.07,
+      "reference": 28587,
+      "actual": 28547,
+      "coverage": 1,
+      "area": 0.9986007625843915
+    },
+    {
+      "view": "inspection",
+      "offset": 0.14,
+      "reference": 29057,
+      "actual": 29064,
+      "coverage": 1,
+      "area": 1.00024090580583
+    },
+    {
+      "view": "gameplay",
+      "offset": 0.14,
+      "reference": 225332,
+      "actual": 225339,
+      "coverage": 1,
+      "area": 1.0000310652725757
+    },
+    {
+      "view": "gameplay",
+      "offset": 0.07,
+      "reference": 179465,
+      "actual": 179461,
+      "coverage": 1,
+      "area": 0.9999777115314964
+    },
+    {
+      "view": "gameplay",
+      "offset": 0,
+      "reference": 134347,
+      "actual": 134374,
+      "coverage": 1,
+      "area": 1.0002009721095373
+    },
+    {
+      "view": "gameplay",
+      "offset": -0.07,
+      "reference": 93975,
+      "actual": 88516,
+      "coverage": 1,
+      "area": 0.9419100824687416
+    },
+    {
+      "view": "gameplay",
+      "offset": -0.14,
+      "reference": 59930,
+      "actual": 59756,
+      "coverage": 1,
+      "area": 0.997096612714834
+    },
+    {
+      "view": "gameplay",
+      "offset": -0.21,
+      "reference": 32926,
+      "actual": 32907,
+      "coverage": 1,
+      "area": 0.9994229484298123
+    },
+    {
+      "view": "gameplay",
+      "offset": -0.14,
+      "reference": 59930,
+      "actual": 59756,
+      "coverage": 1,
+      "area": 0.997096612714834
+    },
+    {
+      "view": "gameplay",
+      "offset": -0.07,
+      "reference": 93975,
+      "actual": 88516,
+      "coverage": 1,
+      "area": 0.9419100824687416
+    },
+    {
+      "view": "gameplay",
+      "offset": 0,
+      "reference": 134347,
+      "actual": 134374,
+      "coverage": 1,
+      "area": 1.0002009721095373
+    },
+    {
+      "view": "gameplay",
+      "offset": 0.07,
+      "reference": 179465,
+      "actual": 179461,
+      "coverage": 1,
+      "area": 0.9999777115314964
+    },
+    {
+      "view": "gameplay",
+      "offset": 0.14,
+      "reference": 225332,
+      "actual": 225339,
+      "coverage": 1,
+      "area": 1.0000310652725757
+    },
+    {
+      "view": "edge",
+      "offset": 0.14,
+      "reference": 7192,
+      "actual": 7204,
+      "coverage": 1,
+      "area": 1.0016685205784204
+    },
+    {
+      "view": "edge",
+      "offset": 0.07,
+      "reference": 8906,
+      "actual": 8851,
+      "coverage": 1,
+      "area": 0.993824388052998
+    },
+    {
+      "view": "edge",
+      "offset": 0,
+      "reference": 10568,
+      "actual": 10528,
+      "coverage": 1,
+      "area": 0.9962149886449659
+    },
+    {
+      "view": "edge",
+      "offset": -0.07,
+      "reference": 12239,
+      "actual": 12201,
+      "coverage": 1,
+      "area": 0.9968951711741155
+    },
+    {
+      "view": "edge",
+      "offset": -0.14,
+      "reference": 13360,
+      "actual": 13322,
+      "coverage": 1,
+      "area": 0.9971556886227545
+    },
+    {
+      "view": "edge",
+      "offset": -0.21,
+      "reference": 13946,
+      "actual": 13905,
+      "coverage": 1,
+      "area": 0.997060088914384
+    },
+    {
+      "view": "edge",
+      "offset": -0.14,
+      "reference": 13360,
+      "actual": 13322,
+      "coverage": 1,
+      "area": 0.9971556886227545
+    },
+    {
+      "view": "edge",
+      "offset": -0.07,
+      "reference": 12239,
+      "actual": 12201,
+      "coverage": 1,
+      "area": 0.9968951711741155
+    },
+    {
+      "view": "edge",
+      "offset": 0,
+      "reference": 10568,
+      "actual": 10528,
+      "coverage": 1,
+      "area": 0.9962149886449659
+    },
+    {
+      "view": "edge",
+      "offset": 0.07,
+      "reference": 8906,
+      "actual": 8851,
+      "coverage": 1,
+      "area": 0.993824388052998
+    },
+    {
+      "view": "edge",
+      "offset": 0.14,
+      "reference": 7192,
+      "actual": 7204,
+      "coverage": 1,
+      "area": 1.0016685205784204
+    },
+    {
+      "view": "turbulent",
+      "offset": 0.14,
+      "reference": 30611,
+      "actual": 30593,
+      "coverage": 1,
+      "area": 0.9994119760870276
+    },
+    {
+      "view": "turbulent",
+      "offset": 0.07,
+      "reference": 30852,
+      "actual": 30886,
+      "coverage": 1,
+      "area": 1.0011020355244393
+    },
+    {
+      "view": "turbulent",
+      "offset": 0,
+      "reference": 31027,
+      "actual": 31038,
+      "coverage": 1,
+      "area": 1.0003545299255487
+    },
+    {
+      "view": "turbulent",
+      "offset": -0.07,
+      "reference": 30386,
+      "actual": 30345,
+      "coverage": 1,
+      "area": 0.9986506943987362
+    },
+    {
+      "view": "turbulent",
+      "offset": -0.14,
+      "reference": 29544,
+      "actual": 28228,
+      "coverage": 1,
+      "area": 0.9554562686163011
+    },
+    {
+      "view": "turbulent",
+      "offset": -0.21,
+      "reference": 28552,
+      "actual": 28428,
+      "coverage": 1,
+      "area": 0.9956570467918184
+    },
+    {
+      "view": "turbulent",
+      "offset": -0.14,
+      "reference": 28609,
+      "actual": 28467,
+      "coverage": 1,
+      "area": 0.9950365269670384
+    },
+    {
+      "view": "turbulent",
+      "offset": -0.07,
+      "reference": 28553,
+      "actual": 28425,
+      "coverage": 1,
+      "area": 0.9955171085350051
+    },
+    {
+      "view": "turbulent",
+      "offset": 0,
+      "reference": 28738,
+      "actual": 28634,
+      "coverage": 1,
+      "area": 0.9963810981975085
+    },
+    {
+      "view": "turbulent",
+      "offset": 0.07,
+      "reference": 29279,
+      "actual": 29227,
+      "coverage": 1,
+      "area": 0.9982239830595308
+    },
+    {
+      "view": "turbulent",
+      "offset": 0.14,
+      "reference": 29764,
+      "actual": 29758,
+      "coverage": 1,
+      "area": 0.999798414191641
+    },
+    {
+      "foreground": [
+        {
+          "x": 540,
+          "y": 260,
+          "w": 240,
+          "h": 50,
+          "changedFraction": 0
+        },
+        {
+          "x": 0,
+          "y": 310,
+          "w": 160,
+          "h": 25,
+          "changedFraction": 0
+        },
+        {
+          "x": 1120,
+          "y": 310,
+          "w": 160,
+          "h": 25,
+          "changedFraction": 0
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

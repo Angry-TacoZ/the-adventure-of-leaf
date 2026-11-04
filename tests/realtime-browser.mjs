@@ -46,6 +46,11 @@ try {
   await page.waitForFunction(() => window.render_game_to_text);
   const read = () =>
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
+  const opening = await read();
+  assert.equal(opening.opening.phase, "falling");
+  assert.ok(opening.y > 2.5, "normal gameplay did not start at the tree");
+  await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).opening.phase === "afloat", null, { timeout: 60000 });
+  assert.ok((await read()).y < opening.y - 2, "Rapier did not carry the opening fall into the river");
   assert.equal(
     await page.evaluate(() => typeof window.advanceTime),
     "undefined",
@@ -168,6 +173,8 @@ try {
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).time < 1,
   );
+  assert.equal((await read()).opening.phase, "falling");
+  await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).opening.phase === "afloat", null, { timeout: 60000 });
   await page.evaluate(() => {
     window.mockPad.axes[0] = 1;
   });

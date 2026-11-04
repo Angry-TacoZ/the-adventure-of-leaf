@@ -55,6 +55,7 @@ export function createBirchGeometry(seed: string) {
     ["color", colors, 3], ["aWind", winds, 1],
   ] as const) foliage.setAttribute(name, new THREE.Float32BufferAttribute(data, size));
   foliage.setIndex([...indices[0], ...indices[1]]);
+  foliage.userData.lowDetailIndexCount = indices[0].length;
   foliage.computeBoundingSphere();
   // Both geometries sway in the same local frame, continuous at branch forks.
   wood.deleteAttribute("aStemCenter");

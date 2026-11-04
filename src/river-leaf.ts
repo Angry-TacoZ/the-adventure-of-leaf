@@ -1,10 +1,12 @@
 import { createBankData, BED_WIDTH } from "./bank-terrain";
 import { createLeafTopology } from "./leaf-topology";
+import { createFishPhysics } from "./fish-physics";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
   FIXED_STEP,
   sampleEnvironment,
   type LeafFrame,
+  type Vector3Data,
 } from "./physics-boundary";
 import { obstacles, river, type State, type Params } from "./simulation";
 
@@ -14,6 +16,7 @@ export async function createRiverLeaf() {
   const world = new R.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = FIXED_STEP;
   const events = new R.EventQueue(true);
+  const fish = createFishPhysics(R, world);
   for (const rock of obstacles)
     world.createCollider(
       R.ColliderDesc.ball(rock.r).setTranslation(rock.x, 0.32, rock.z),
@@ -41,7 +44,7 @@ export async function createRiverLeaf() {
           (row % 2 ? 0.94 : 1),
       );
     for (const x of [-width, 0, width])
-      positions.push(x, 0.08, (t - 0.5) * 0.89);
+      positions.push(x, 0, (t - 0.5) * 0.89);
     if (row)
       for (let col = 0; col < 2; col++) {
         const a = (row - 1) * 3 + col,
@@ -64,7 +67,9 @@ export async function createRiverLeaf() {
   material.edgePlasticMax = 0.2;
   let lastStepMs = 0,
     tears = 0;
-  function reset() {
+  let origin: Vector3Data = { x: 0, y: 0.08, z: 0 };
+  function reset(spawn: Vector3Data = origin) {
+    origin = { ...spawn };
     tears = 0;
     for (const body of world.softBodies.getAll()) world.removeSoftBody(body);
     topology.clear();
@@ -74,6 +79,7 @@ export async function createRiverLeaf() {
       world.createSoftBody(
         desc
           .setMass(0.002)
+          .setTranslation(origin)
           .setMaterial(material)
           .setLinearDamping(0.02)
           .setParticleRadius(0.008),
@@ -99,6 +105,7 @@ export async function createRiverLeaf() {
     reset,
     step(state: State, p: Params) {
       const started = performance.now();
+      fish.step(state, p);
       for (const body of bodies) {
         body.resetForces(true);
         for (let i = 0; i < body.numParticles(); i++) {
@@ -120,7 +127,11 @@ export async function createRiverLeaf() {
                 e.wind.z * 3,
                 Math.max(0, (-e.current.z - 0.15) * p.drag * immersed),
               ));
-          force.y = m * (19.62 * immersed - velocity.y * 6 * immersed);
+          // Broad-leaf air resistance fades out before the supported water band.
+          // This bounds the opening fall without changing in-water damping.
+          const air = Math.min(1, Math.max(0, (point.y - e.height - 0.02) / 0.1));
+          const airDrag = 4 * air * air * (3 - 2 * air);
+          force.y = m * (19.62 * immersed - velocity.y * (6 * immersed + airDrag));
           body.addParticleForce(i, force, true);
         }
       }
@@ -157,9 +168,9 @@ export async function createRiverLeaf() {
       state.vz = vz / n;
       if (state.z < river.stop) {
         reset();
-        state.x = 0;
-        state.z = 0;
-        state.y = 0.08;
+        state.x = origin.x;
+        state.z = origin.z;
+        state.y = origin.y;
         state.vx = state.vy = state.vz = 0;
         state.laps++;
       }
@@ -169,6 +180,7 @@ export async function createRiverLeaf() {
       frame.fragments = bodies.map((body) => topology.read(body));
       return frame;
     },
+    readFishFrame: fish.read,
     forceTear() {
       // Verification-only caller: cut across the middle using engine topology, not duplicated meshes.
       const body = bodies.reduce((a, b) =>
