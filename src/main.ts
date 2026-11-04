@@ -1,3 +1,4 @@
+import { createLeafView } from "./leaf-view";
 import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
@@ -211,44 +212,9 @@ geometry.translate(0, -riverCenter, 0);
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
-const leaf = new THREE.Group();
-const leafGeometry = new THREE.BufferGeometry();
-const leafData = physics.readFrame().fragments![0];
-leafGeometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(leafData.positions, 3).setUsage(
-    THREE.DynamicDrawUsage,
-  ),
-);
-leafGeometry.setIndex(new THREE.BufferAttribute(leafData.indices!, 1));
-const blade = new THREE.Mesh(
-  leafGeometry,
-  new THREE.MeshStandardMaterial({
-    color: 0xb5aa45,
-    roughness: 0.8,
-    side: THREE.DoubleSide,
-  }),
-);
-leaf.add(blade);
-const veinPositions = new Float32Array(9 * 6);
-const veinIndices: number[] = [];
-for (let i = 1; i < 9; i++) {
-  const a = (i - 1) * 2;
-  veinIndices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
-}
-const veinGeometry = new THREE.BufferGeometry();
-veinGeometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(veinPositions, 3).setUsage(THREE.DynamicDrawUsage),
-);
-veinGeometry.setIndex(veinIndices);
-const vein = new THREE.Mesh(
-  veinGeometry,
-  new THREE.MeshStandardMaterial({ color: 0x6f7235, side: THREE.DoubleSide }),
-);
-vein.frustumCulled = false;
-blade.frustumCulled = false;
-leaf.add(vein);
+const leafView = createLeafView();
+const leaf = leafView.group;
+window.addEventListener("pagehide", () => leafView.dispose(), { once: true });
 scene.add(leaf);
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
@@ -394,36 +360,7 @@ function render(dt: number) {
   for (const { mesh, rock } of foams)
     mesh.position.y =
       surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
-  physics.readFrame();
-  leafGeometry.attributes.position.needsUpdate = true;
-
-  const local = leafGeometry.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < local.count; i++)
-    local.setXYZ(
-      i,
-      local.getX(i) - state.x,
-      local.getY(i) - state.y,
-      local.getZ(i) - state.z,
-    );
-  leaf.position.set(state.x, state.y, state.z);
-  leaf.rotation.set(0, 0, 0);
-  leafGeometry.computeVertexNormals();
-  for (let row = 0; row < 9; row++) {
-    const i = row * 3 + 1;
-    veinPositions.set(
-      [
-        local.getX(i) - 0.006,
-        local.getY(i) + 0.004,
-        local.getZ(i),
-        local.getX(i) + 0.006,
-        local.getY(i) + 0.004,
-        local.getZ(i),
-      ],
-      row * 6,
-    );
-  }
-  veinGeometry.attributes.position.needsUpdate = true;
-  veinGeometry.computeVertexNormals();
+  leafView.update(physics.readFrame(), state);
   if (submersionTest) {
     leaf.position.y =
       surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
