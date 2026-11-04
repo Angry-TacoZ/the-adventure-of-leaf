@@ -1,3 +1,4 @@
+import { onFinalPageHide } from "./lifecycle";
 import { createBankMeshes } from "./bank-view";
 import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
 import { createUnderstory } from "./understory";
@@ -27,6 +28,7 @@ if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGPURenderer;
+let gameplayReady = false;
 try {
   renderer = new THREE.WebGPURenderer({
     forceWebGL:
@@ -94,6 +96,7 @@ const qualityControl = document.querySelector<HTMLSelectElement>("#quality")!;
 if (import.meta.env.DEV) qualityControl.closest("label")!.hidden = true;
 qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
+  if (gameplayReady && manual) render(0);
 });
 let state = initial();
 const physics = await createRiverLeaf().catch((error) => {
@@ -101,7 +104,7 @@ const physics = await createRiverLeaf().catch((error) => {
     "Physics initialization failed. Reload the page to retry.";
   throw error;
 });
-window.addEventListener("pagehide", () => physics.dispose(), { once: true });
+onFinalPageHide(() => physics.dispose());
 camera.position.set(
   state.x,
   state.y + p.cameraHeight,
@@ -149,7 +152,7 @@ shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
 shoreTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const banks = createBankMeshes(shoreTexture);
 for (const mesh of banks.meshes) scene.add(mesh);
-window.addEventListener("pagehide", () => banks.dispose(), { once: true });
+onFinalPageHide(() => banks.dispose());
 const rockTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
 );
@@ -204,17 +207,24 @@ const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
 const leafView = createLeafView();
-await leafView.ready;
+await leafView.ready.catch(() => {
+  leafView.useFallback();
+  document.querySelector("#error")!.textContent =
+    "Leaf detail could not load. You can keep playing; reload to retry the texture.";
+});
 const leaf = leafView.group;
-window.addEventListener("pagehide", () => leafView.dispose(), { once: true });
+onFinalPageHide(() => leafView.dispose());
 scene.add(leaf);
 const comparisonPlants =
   (import.meta.env.DEV ||
     import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") &&
   new URLSearchParams(location.search).get("understory") === "compare";
 const understory = await createUnderstory(comparisonPlants);
+if (understory.diagnostics().failedSpecies.length)
+  document.querySelector("#error")!.textContent =
+    "Some shoreline plants could not load. You can keep playing; reload to retry.";
 scene.add(understory.group);
-window.addEventListener("pagehide", () => understory.dispose(), { once: true });
+onFinalPageHide(() => understory.dispose());
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -283,6 +293,9 @@ function updateWindStreaks() {
   streakGeometry.attributes.position.needsUpdate = true;
 }
 const clock = new THREE.Clock();
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) clock.start();
+});
 let accumulator = 0,
   lastRender = 0,
   frameMs = 16,
@@ -419,7 +432,7 @@ function loop(now: number) {
       accumulator -= FIXED_STEP;
     }
   }
-  render(manual ? 0 : dt);
+  if (!manual || frames === 1) render(manual ? 0 : dt);
 }
 window.addEventListener("keydown", (e) => {
   keys.add(e.key.toLowerCase());
@@ -428,6 +441,8 @@ window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") {
     state = initial();
     physics.reset();
+    accumulator = 0;
+    if (manual) render(0);
   }
   if (e.key.toLowerCase() === "f") {
     if (document.fullscreenElement) void document.exitFullscreen();
@@ -440,6 +455,7 @@ window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  if (manual) render(0);
 });
 window.render_game_to_text = () =>
   JSON.stringify({
@@ -491,6 +507,7 @@ if (manual)
   window.setWaterOptics = (reflection: number, refraction: number) => {
     optics.reflectionWeight.value = reflection;
     optics.refractionWeight.value = refraction;
+    render(0);
   };
 if (manual)
   window.advanceTime = (ms: number) => {
@@ -504,6 +521,7 @@ if (manual)
 if (import.meta.env.DEV) {
   void import("lil-gui").then(({ default: GUI }) => {
     const gui = new GUI({ title: "River tuning · development" });
+    gui.onChange(() => { if (manual) render(0); });
     const waterFolder = gui.addFolder("Water / current");
     waterFolder.add(p, "current", 0.2, 2.5, 0.01);
     waterFolder.add(p, "variation", 0, 0.8, 0.01);
@@ -557,4 +575,5 @@ if (import.meta.env.DEV) {
     gui.close();
   });
 }
+gameplayReady = true;
 requestAnimationFrame(loop);

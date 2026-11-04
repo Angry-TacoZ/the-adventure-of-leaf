@@ -11,6 +11,7 @@ export async function createUnderstory(comparison = false) {
     materials = new Set<THREE.Material>(),
     textures = new Set<THREE.Texture>();
   const instances: { mesh: THREE.InstancedMesh; count: number }[] = [];
+  const failedSpecies: string[] = [];
   const names = comparison
     ? [
         "fern_02",
@@ -30,7 +31,8 @@ export async function createUnderstory(comparison = false) {
     names.map(async (name, kind) => {
       const gltf = await new GLTFLoader().loadAsync(
         `${import.meta.env.BASE_URL}assets/understory/${name}.glb`,
-      );
+      ).catch(() => { failedSpecies.push(name); return null; });
+      if (!gltf) return;
       gltf.scene.updateMatrixWorld(true);
       const count = comparison
         ? 12
@@ -105,7 +107,8 @@ export async function createUnderstory(comparison = false) {
     diagnostics() {
       return {
         comparison,
-        species: names,
+        species: names.filter((name) => !failedSpecies.includes(name)),
+        failedSpecies: names.filter((name) => failedSpecies.includes(name)),
         instances: instances.reduce((n, p) => n + p.mesh.count, 0),
       };
     },

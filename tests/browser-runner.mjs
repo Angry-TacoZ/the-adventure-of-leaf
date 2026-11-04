@@ -60,8 +60,10 @@ async function suite(mode, script) {
 }
 if (process.argv.includes("--optics")) {
   await suite("dev", "tests/depth-copy-check.mjs");
+  await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
+  await suite("dev", "tests/lifecycle-browser.mjs");
   await suite("dev", "tests/leaf-view-browser.mjs");
   await suite("dev", "tests/understory-browser.mjs");
   await suite("dev", "tests/rapier-prototype-browser.mjs");

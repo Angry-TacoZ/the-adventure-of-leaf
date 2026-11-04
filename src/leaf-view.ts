@@ -46,6 +46,7 @@ export function createLeafView() {
   return {
     group,
     ready: surface.ready,
+    useFallback: surface.useFallback,
     update(frame: LeafFrame, centre: Vector3Data) {
       const active = new Set((frame.fragments ?? []).map((p) => p.id));
       for (const id of pieces.keys()) if (!active.has(id)) remove(id);

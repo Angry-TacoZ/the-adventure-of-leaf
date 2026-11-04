@@ -82,8 +82,12 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const foreground = candidateZ.greaterThan(positionView.z);
   const safeUV = foreground.select(screenUV, candidateUV);
   const safeZ = foreground.select(sceneZ, candidateZ);
+  // Millimetre-scale contact matters for the paper-thin hero. A centimetres-wide
+  // depth tolerance pulled isolated gold slivers across nearby rock silhouettes.
+  // Fall back to the undistorted capture at these discontinuities, retaining the
+  // submerged leaf rather than discarding water or lifting the physics surface.
   const continuity = float(1).sub(
-    smoothstep(0.03, 0.1, safeZ.sub(sceneZ).abs()),
+    smoothstep(0.002, 0.01, safeZ.sub(sceneZ).abs()),
   );
   const refractedUV = mix(screenUV, safeUV, continuity);
   const sampledZ = perspectiveDepthToViewZ(
