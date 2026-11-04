@@ -60,6 +60,8 @@ async function suite(mode, script) {
 }
 if (process.argv.includes("--optics")) {
   if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/menu-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/bfcache-native-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/forest-browser.mjs");
@@ -71,6 +73,7 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
+  await suite("dev", "tests/menu-browser.mjs");
   await suite("dev", "tests/lifecycle-browser.mjs");
   await suite("dev", "tests/leaf-view-browser.mjs");
   await suite("dev", "tests/understory-browser.mjs");

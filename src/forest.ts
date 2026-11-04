@@ -40,7 +40,7 @@ export function createForest() {
   leafMaterial.positionNode = position;
   const geometries: THREE.BufferGeometry[] = [];
   const batches: { trunk: THREE.InstancedMesh; crown: THREE.InstancedMesh;
-    roots: { matrix: THREE.Matrix4; z: number; slot: number }[] }[] = [];
+    roots: { matrix: THREE.Matrix4; z: number; slot: number; opening: boolean }[] }[] = [];
   const rng = new Rng("headwaters-forest-placement");
   const matrix = new THREE.Matrix4();
   let opening: THREE.Vector3 | undefined, openingScore = Infinity;
@@ -49,7 +49,7 @@ export function createForest() {
   for (let variant = 0; variant < 3; variant++) {
     const { wood, foliage } = createBirchGeometry(`yellow-birch-${variant}`);
     geometries.push(wood, foliage);
-    const roots: { matrix: THREE.Matrix4; z: number; slot: number }[] = [];
+    const roots: { matrix: THREE.Matrix4; z: number; slot: number; opening: boolean }[] = [];
     for (let section = 0; section < 4; section++) {
       for (let i = 0; i < 4; i++) {
         const side = i % 2 ? -1 : 1;
@@ -62,7 +62,7 @@ export function createForest() {
         matrix.makeScale(scale * (openingTree ? 1.5 : 1), scale, scale);
         // Bury the root flare below both sides of the local slope.
         matrix.setPosition(x, bankHeight(x, z) - 0.22, z);
-        roots.push({ matrix: matrix.clone(), z, slot: i });
+        roots.push({ matrix: matrix.clone(), z, slot: i, opening: openingTree });
         if (z > -8 && z < 18) {
           const blades = foliage.getAttribute("position");
           for (let vertex = 6; vertex < blades.count; vertex += 7) {
@@ -114,7 +114,7 @@ export function createForest() {
           let count = 0;
           for (const root of roots) {
             // Cull beyond opaque fog; low quality keeps paired banks throughout.
-            if (Math.abs(root.z - cell * 8) > 75 || (quality < 0.75 && root.slot >= 2)) continue;
+            if (Math.abs(root.z - cell * 8) > 75 || (quality < 0.75 && root.slot >= 2 && !root.opening)) continue;
             trunk.setMatrixAt(count, root.matrix); crown.setMatrixAt(count, root.matrix); count++;
           }
           for (const mesh of [trunk, crown]) {

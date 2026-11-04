@@ -69,7 +69,9 @@ await page.evaluate(() => window.advanceTime(1000));
 let neutral = await read();
 assert.equal(neutral.windLevel, 1);
 assert.ok(neutral.intensity > 0.24);
-await page.screenshot({ path: "output/web-game/controller.png" });
+// CI software compositing can exceed Playwright's default 30 s capture budget.
+// Keep the capture and all gameplay assertions, with a bounded 60 s allowance.
+await page.screenshot({ path: "output/web-game/controller.png", timeout: 60000 });
 await page.keyboard.press("r");
 for (let i = 0; i < 4; i++) {
   await page.keyboard.down("e");

@@ -33,7 +33,10 @@ Verification-only hooks in development manual mode can hide water for an unobstr
 - `physics-boundary.ts`: typed data exchanged between simulation and presentation.
 - `leaf-view.ts`: display buffers, normals, material and mesh lifecycle. It copies the supplied positions and never writes into physics data. Current gameplay frames use world coordinates; arbitrary per-fragment quaternion poses are not consumed yet.
 - `water.ts`: water optical materials and captures.
-- `main.ts`: initialization, sole fixed-step clock, input collection and camera orchestration. Further environment, journey, menu and audio work should have its own module as each feature is implemented, rather than accumulating behavior here.
+- `leaf-integrity.ts`: rest-triangle material area and the strict below-25% ending boundary. The Rapier owner caches each body's area by handle/topology revision and follows the piece with the greatest material area, independent of duplicated tear vertices.
+- `game-ui.ts`: native modal menus, focus, standard-controller navigation and approved damage/restart choices. Callbacks request gameplay/audio changes; no physics solver lives here.
+- `audio.ts`: gesture-unlocked Web Audio ambience and bounded disposable effect voices, independent volume buses and final-page disposal. Audio time never advances physics.
+- `main.ts`: initialization, sole fixed-step clock, input collection and camera orchestration. It pauses the accumulator and ambient audio for menus and stops fixed steps immediately at the damage ending. Further journey work should have its own module rather than accumulating behavior here.
 
 Review checkpoints: push functional milestones to the draft PR, request built-in Codex review, check returned findings against the current revision, and compare the milestone against `DEMO_PROGRESS.md` and the original human objective. Review feedback complements runtime, visual and acceptance checks. A clean review of an increment does not establish completion of deferred requirements.
 

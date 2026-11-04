@@ -1,6 +1,7 @@
 import { createBankData, BED_WIDTH } from "./bank-terrain";
 import { createLeafTopology } from "./leaf-topology";
 import { createFishPhysics } from "./fish-physics";
+import { triangleArea, retainedFraction, shouldEndAdventure } from "./leaf-integrity";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
   FIXED_STEP,
@@ -56,6 +57,23 @@ export async function createRiverLeaf() {
     rest = new Float32Array(positions);
 
   const topology = createLeafTopology(rest);
+  const originalArea = triangleArea(rest, indices);
+  const areaCache = new Map<number, { revision: number; area: number }>();
+  function materialArea(body: Rapier.SoftBody) {
+    const revision = body.topologyVersion(), cached = areaCache.get(body.handle);
+    if (cached?.revision === revision) return cached.area;
+    const points = new Float32Array(body.numParticles() * 3);
+    for (let i = 0; i < body.numParticles(); i++) {
+      const p = body.particleRestPosition(i); points.set([p.x, p.y, p.z], i * 3);
+    }
+    const area = triangleArea(points, body.boundary());
+    areaCache.set(body.handle, { revision, area });
+    return area;
+  }
+  function primaryBody() {
+    return bodies.reduce<Rapier.SoftBody | undefined>((largest, body) =>
+      !largest || materialArea(body) > materialArea(largest) ? body : largest, undefined);
+  }
   let bodies: Rapier.SoftBody[] = [];
   const material = R.SoftBodyMaterial.uniform(30, 1);
   material.tearStrain = 0.8;
@@ -73,6 +91,7 @@ export async function createRiverLeaf() {
     tears = 0;
     for (const body of world.softBodies.getAll()) world.removeSoftBody(body);
     topology.clear();
+    areaCache.clear();
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
     if (!desc) throw Error("Rapier leaf triangulation failed");
     bodies = [
@@ -98,6 +117,8 @@ export async function createRiverLeaf() {
   function sync() {
     bodies = world.softBodies.getAll();
     topology.prune(new Set(bodies.map((b) => b.handle)));
+    const active = new Set(bodies.map((b) => b.handle));
+    for (const handle of areaCache.keys()) if (!active.has(handle)) areaCache.delete(handle);
   }
   return {
     world,
@@ -140,9 +161,8 @@ export async function createRiverLeaf() {
         tears++;
       });
       sync();
-      const primary = bodies.reduce((a, b) =>
-        a.numParticles() >= b.numParticles() ? a : b,
-      );
+      const primary = primaryBody();
+      if (!primary) { lastStepMs = performance.now() - started; return; }
       let x = 0,
         y = 0,
         z = 0,
@@ -166,7 +186,8 @@ export async function createRiverLeaf() {
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
-      if (state.z < river.stop) {
+      // A terminal tear at the testing-loop boundary must not heal via reset.
+      if (state.z < river.stop && !shouldEndAdventure(materialArea(primary) / originalArea)) {
         reset();
         state.x = origin.x;
         state.z = origin.z;
@@ -183,9 +204,8 @@ export async function createRiverLeaf() {
     readFishFrame: fish.read,
     forceTear() {
       // Verification-only caller: cut across the middle using engine topology, not duplicated meshes.
-      const body = bodies.reduce((a, b) =>
-        a.numParticles() >= b.numParticles() ? a : b,
-      );
+      const body = primaryBody();
+      if (!body) return 0;
       let x = 0,
         y = 0,
         z = 0;
@@ -219,6 +239,7 @@ export async function createRiverLeaf() {
         fragments: bodies.length,
         tears,
         stepMs: lastStepMs,
+        integrity: retainedFraction(bodies.map(materialArea), originalArea),
       };
     },
     dispose() {

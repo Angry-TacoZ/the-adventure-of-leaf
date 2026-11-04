@@ -13,6 +13,7 @@ try {
   const base = process.env.LEAF_BASE_URL;
   await page.goto(base);
   await page.waitForFunction(() => window.render_game_to_text);
+  await page.getByRole("button", { name: "Begin journey", exact: true }).click();
   const before = await page.evaluate(() => {
     window.cacheProbe = "retained";
     window.addEventListener("pageshow", (event) => { window.cachePersisted = event.persisted; });

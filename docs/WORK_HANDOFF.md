@@ -1,13 +1,13 @@
 # Work handoff — The Adventure of Leaf
 
-Updated November 4, 2026, headwaters opening milestone. This is the durable resume file James requested; do not rely on chat compaction or assume terminal sessions survive. Subscription-window usage cannot be reliably monitored from this agent.
+Updated November 4, 2026, menu/audio/damage-ending milestone. This is the durable resume file James requested; do not rely on chat compaction or assume terminal sessions survive. Subscription-window usage cannot be reliably monitored from this agent.
 
 ## Authoritative resume steps
 
 Workspace: `C:\Users\angry\OneDrive\Documents\ChatGPT\The adventure of Leaf`.
 Branch: `codex/rapier-softbody-physics`. Existing draft PR: https://github.com/Angry-TacoZ/the-adventure-of-leaf/pull/5 . Do not create another PR or merge.
 
-Run `git status --short --branch`, `git log -4 --oneline`, and `gh pr view 5 --json state,isDraft,headRefOid,baseRefOid`. Find the exact opening/environment commit using `git log -1 --format=%H -- src/main.ts`. The original PR base was `4983f6313ed2b35e06640395ebc1c3abde33677c`; refresh live revisions before using them.
+Run `git status --short --branch`, `git log -4 --oneline`, and `gh pr view 5 --json state,isDraft,headRefOid,baseRefOid`. Find the menu/audio increment using `git log -1 --format=%H -- src/game-ui.ts`. The original PR base was `4983f6313ed2b35e06640395ebc1c3abde33677c`; refresh live revisions before using them.
 
 James explicitly uses Codex BUILT-IN review. Do not wake the old custom dispatcher. After functional pushes, refresh the read-only dashboard, post one scoped `@codex review` request for the new head, and reproduce findings before fixes. Inspect BOTH GitHub issue comments and formal reviews: clean built-in receipts are often issue comments. The 80e6db0 and d95e956 receipts both reported no major issues; they do not cover later forest work or establish full-goal completion.
 
@@ -61,10 +61,9 @@ Performance: scripts/profile-forest.mjs runs a fixed-pose visible/hidden forest 
 
 ## Remaining work and next actions
 
-1. Finish the current opening/environment milestone's verification/release documentation, commit/push it to PR #5, request built-in review, inspect exact-head CI, deploy and verify actual live source/render/input. Resolve verified feedback within scope. Check git/workflow/PR state first in case these steps completed after this file was written.
-2. Continue toward the full goal: regional journey/rapids/storm/ocean, main/settings/menu/credits UI, procedural audio and volumes. Sun/clouds, the physical opening and headwaters fish now exist; PLAYER_GUIDE.md documents current controls but must follow the final journey/UI. SeedThree is now integrated; do not repeat its audit or restart the migration.
-3. Implement the approved game-over flow with the confirmed largest-piece-below-25% threshold.
-4. Complete force/contact/material feel and projected-area wind, refine coarse rock colliders, arbitrary external fragment quaternion presentation, long-duration/matched performance and final visual/gameplay acceptance. Existing fragments receive real physics forces and preserve UVs; do not replace them with cosmetic deformation.
+1. Complete/check the menu milestone's full browser/fallback-optics results, commit/push to PR #5, request built-in review, inspect exact-head CI, deploy and verify actual live source/render/input. Resolve verified feedback within scope. Check git/workflow/PR state first in case these steps completed after this file was written. Local logs use output/menu-*.log. scripts/check-pages-preview.mjs EXPECTED_SHA verifies the actual release label, normal fall, wind input and menus where present.
+2. Continue the full journey: regional route/rapids/thunderstorm/lowlands/Atlantic estuary and ocean. The temporary 130m river loop still exists. Use modular environment/journey data, shared render/physics terrain and the sole fixed clock; avoid simply stretching the existing water grid into an expensive full-world mesh. Sun/clouds, physical opening, headwaters fish, menus/guide/credits, audio and the approved damage ending now exist. SeedThree is integrated; do not repeat its audit or restart the migration.
+3. Complete force/contact/material feel and projected-area wind, refine coarse rock colliders, arbitrary external fragment quaternion presentation, long-duration/matched performance and final visual/gameplay acceptance. Existing fragments receive real physics forces and preserve UVs; do not replace them with cosmetic deformation.
 
 Do not mark the full goal complete, mark the PR ready, or merge merely because this milestone passes tests/review.
 
@@ -74,4 +73,10 @@ Do not mark the full goal complete, mark the PR ready, or merge merely because t
 
 The long-lap test's former open-loop/full-wind input overshot to x≈4.6 m at the shore. The test player now maintains its lane with gentle wind and both-direction keyboard feedback; its two-lap assertion remains and the replay made four laps. There is NO gameplay auto-steering. The contact test now compares detached gold fragments against an unobstructed same-pose reference: crop-edge pieces already on the leaf are not ghosts. The old-threshold counterfactual still fails (21 unsupported pixels); current native/fallback cases have zero.
 
-Latest code is not assumed deployed until the new source HUD and workflow are inspected. The already-live forest build remains the verified earlier receipt above. Keep PR #5 draft and the full goal active. James confirmed the 25% largest-piece threshold; the ending/menu implementation remains the next milestone.
+Opening release 8f0447d85700bfd4a94edc68d9c746034dbc7575: Pages run 41923438774 succeeded. Actual public native-WebGPU smoke verified its matching development label, tree fall, loaded forest/understory and wind-driven lateral movement with no captured errors (output/pages-headwaters-smoke.log). Its CI 41923358220 failed during a 30-second software screenshot capture after preceding checks passed. The same capture now has a bounded 60-second allowance; assertions remain. Built-in review found the opening tree was omitted at Low quality; the menu increment reproduces that failure using actual instance matrices and preserves the supporting tree. Do not treat old review comments retargeted onto a newer commit as new findings without checking original_commit_id.
+
+## Menu/audio/damage checkpoint
+
+game-ui.ts owns home/pause/settings/guide/credits/loss dialogs and pointer/keyboard/controller focus. audio.ts owns original procedural water/wind ambience, splash/tear/click voices, separate master/water/wind/effect gains and final disposal. leaf-integrity.ts calculates rest-triangle area; river-leaf.ts caches it per handle/topology revision and selects the largest material piece. Exactly 25% can continue; below it opens James's exact ending and pauses simulation, with headwaters restart/main-menu recovery. Terminal damage cannot be healed by reaching the temporary lap boundary. Main pauses the fixed accumulator and ambient sound in menus, and manual fixtures remain DEV-only.
+
+18 unit tests/TypeScript/build passed. Menu checks passed on WebGL2 and native NVIDIA WebGPU: real Rapier cuts reached 22.8634%, both recovery choices restored a single full leaf, native keyboard select/gamepad menu navigation worked, graphics resized, audio unlocked/muted/cleaned effects and 390px screens stayed in bounds. The full native optics suite passed, including 44 poses, real BFcache Back restoration with audio unlocked, forest quality/cleanup and contact rejection. Dedicated Low-quality opening regression failed before the fix and passed on both backends afterward. Complete browser/fallback-optics and exact-head CI/review/Pages status must be read from current output/menu-*.log and GitHub before claiming the newer release. Menu layout/sounds remain provisional for James's acceptance; the full rapids/storm/Atlantic route remains the next substantial gameplay work.

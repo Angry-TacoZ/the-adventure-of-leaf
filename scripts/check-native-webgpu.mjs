@@ -38,6 +38,7 @@ try {
   });
   if (result.available) {
     await page.waitForFunction(() => window.render_game_to_text);
+    await page.getByRole("button", { name: "Begin journey", exact: true }).click();
     await page.waitForFunction(
       () => JSON.parse(window.render_game_to_text()).frames > 20,
     );
