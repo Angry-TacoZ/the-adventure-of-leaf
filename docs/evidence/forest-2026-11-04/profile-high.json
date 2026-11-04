@@ -1,0 +1,207 @@
+{
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900KF",
+  "viewport": [
+    1280,
+    720
+  ],
+  "quality": 1,
+  "windowMsPerCase": 4000,
+  "results": [
+    {
+      "backend": "WebGPU",
+      "software": false,
+      "forestVisible": false,
+      "browser": "156.0.8078.47",
+      "wallMs": {
+        "mean": 10.504564313473049,
+        "p95": 11.100000023841858
+      },
+      "frameIntervalMs": {
+        "mean": 16.68,
+        "p95": 16.800000000000182
+      },
+      "samples": 241,
+      "renderSubmitMs": {
+        "mean": 1.0170124502102864,
+        "p95": 1.2000000476837158
+      },
+      "resources": {
+        "attributes": 268,
+        "attributesSize": 1418140,
+        "geometries": 92,
+        "indexAttributes": 14,
+        "indexAttributesSize": 934764,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 28,
+        "programsSize": 180085,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 26,
+        "texturesSize": 177112455,
+        "uniformBuffers": 210,
+        "uniformBuffersSize": 79040,
+        "total": 179724484
+      },
+      "forest": {
+        "species": "Betula alleghaniensis",
+        "variants": 3,
+        "totalTrees": 48,
+        "trees": 35,
+        "leafTriangles": 317520,
+        "windDisplacement": 0,
+        "geometries": 6
+      }
+    },
+    {
+      "backend": "WebGPU",
+      "software": false,
+      "forestVisible": true,
+      "browser": "156.0.8078.47",
+      "wallMs": {
+        "mean": 10.45186721932344,
+        "p95": 10.900000095367432
+      },
+      "frameIntervalMs": {
+        "mean": 16.680416666666666,
+        "p95": 16.799999999999955
+      },
+      "samples": 241,
+      "renderSubmitMs": {
+        "mean": 1.121161828891865,
+        "p95": 1.2999999523162842
+      },
+      "resources": {
+        "attributes": 292,
+        "attributesSize": 2941480,
+        "geometries": 98,
+        "indexAttributes": 20,
+        "indexAttributesSize": 1361580,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 42,
+        "programsSize": 259287,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 27,
+        "texturesSize": 177461893,
+        "uniformBuffers": 234,
+        "uniformBuffersSize": 93728,
+        "total": 182117968
+      },
+      "forest": {
+        "species": "Betula alleghaniensis",
+        "variants": 3,
+        "totalTrees": 48,
+        "trees": 35,
+        "leafTriangles": 317520,
+        "windDisplacement": 0,
+        "geometries": 6
+      }
+    },
+    {
+      "backend": "WebGL2",
+      "software": true,
+      "forestVisible": false,
+      "browser": "156.0.8078.4",
+      "wallMs": {
+        "mean": 10.166666673289406,
+        "p95": 17.100000023841858
+      },
+      "frameIntervalMs": {
+        "mean": 121.9,
+        "p95": 566.5999999999995
+      },
+      "samples": 36,
+      "renderSubmitMs": {
+        "mean": 1.2249999874167972,
+        "p95": 2.1999999284744263
+      },
+      "resources": {
+        "attributes": 268,
+        "attributesSize": 1418140,
+        "geometries": 92,
+        "indexAttributes": 14,
+        "indexAttributesSize": 495846,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 28,
+        "programsSize": 154241,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 26,
+        "texturesSize": 177112455,
+        "uniformBuffers": 210,
+        "uniformBuffersSize": 81952,
+        "total": 179262634
+      },
+      "forest": {
+        "species": "Betula alleghaniensis",
+        "variants": 3,
+        "totalTrees": 48,
+        "trees": 35,
+        "leafTriangles": 317520,
+        "windDisplacement": 0,
+        "geometries": 6
+      }
+    },
+    {
+      "backend": "WebGL2",
+      "software": true,
+      "forestVisible": true,
+      "browser": "156.0.8078.4",
+      "wallMs": {
+        "mean": 10.476470586131601,
+        "p95": 15.200000047683716
+      },
+      "frameIntervalMs": {
+        "mean": 135.34545454545454,
+        "p95": 733.2999999999993
+      },
+      "samples": 34,
+      "renderSubmitMs": {
+        "mean": 1.285294119049521,
+        "p95": 2.3000000715255737
+      },
+      "resources": {
+        "attributes": 292,
+        "attributesSize": 2941480,
+        "geometries": 98,
+        "indexAttributes": 20,
+        "indexAttributesSize": 709254,
+        "indirectStorageAttributes": 0,
+        "indirectStorageAttributesSize": 0,
+        "programs": 42,
+        "programsSize": 216456,
+        "readbackBuffers": 0,
+        "readbackBuffersSize": 0,
+        "renderTargets": 2,
+        "storageAttributes": 0,
+        "storageAttributesSize": 0,
+        "textures": 27,
+        "texturesSize": 177461893,
+        "uniformBuffers": 234,
+        "uniformBuffersSize": 96832,
+        "total": 181425915
+      },
+      "forest": {
+        "species": "Betula alleghaniensis",
+        "variants": 3,
+        "totalTrees": 48,
+        "trees": 35,
+        "leafTriangles": 317520,
+        "windDisplacement": 0,
+        "geometries": 6
+      }
+    }
+  ]
+}

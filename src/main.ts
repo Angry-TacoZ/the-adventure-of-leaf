@@ -1,4 +1,5 @@
 import { onFinalPageHide } from "./lifecycle";
+import { createForest } from "./forest";
 import { createBankMeshes } from "./bank-view";
 import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
 import { createUnderstory } from "./understory";
@@ -225,6 +226,9 @@ if (understory.diagnostics().failedSpecies.length)
     "Some shoreline plants could not load. You can keep playing; reload to retry.";
 scene.add(understory.group);
 onFinalPageHide(() => understory.dispose());
+const forest = createForest();
+scene.add(forest.group);
+onFinalPageHide(() => forest.dispose());
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -402,6 +406,7 @@ function render(dt: number) {
     renderer.setPixelRatio(pixelRatio);
   optics.setQuality(p.quality);
   understory.setQuality(p.quality);
+  forest.update(state.time, state.windX, state.windZ, state.intensity * p.windStrength, p.quality, state.z);
   updateWindStreaks();
   const renderStart = performance.now();
   renderer.render(scene, camera);
@@ -463,6 +468,7 @@ window.render_game_to_text = () =>
     ...state,
     physics: physics.diagnostics(),
     understory: understory.diagnostics(),
+    forest: forest.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,

@@ -88,3 +88,21 @@ The software timings are highly variable: for example, a 720p main mean exceeded
 The water pass previously triggered four depth framebuffer copies and one color copy per frame. Sharing the depth texture reduces this to one depth and one color copy, verified on both backends without removing the depth rejection or optics. At the tested camera and leaf poses the six before/after images had no pixels differing by more than 3/255 in any color channel. Reflection, depth and color ablations were individually recorded; their noisy frame intervals do not support assigning the software slowdown to one effect. The remaining software regression warrants future profiling.
 
 A separate RTX 4090 WebGL2 `EXT_disjoint_timer_query_webgl2` baseline measured mean/p95 GPU elapsed times of 0.709/1.193 ms at 720p and 0.769/1.373 ms at 1080p. Native WebGPU renderer timestamp samples after the change measured 0.048/0.131 ms and 0.050/0.131 ms respectively, quantized in 0.065536 ms increments with zeros. These APIs cover different scopes and cannot establish a relative GPU speedup. No performance improvement is claimed from these non-equivalent GPU timers. Full samples, per-pass ablations, and test conditions are in evidence/performance-final-pass. The benchmark's reflector-resolution override uses a Three.js internal API and may require maintenance after a Three.js upgrade.
+
+
+## Forest draw ablation — November 4, 2026
+
+Reproduce with a local dev server and `node scripts/profile-forest.mjs`; repeat with `LEAF_FOREST_QUALITY=0.5`. The script uses a fixed manual pose, 1280×720 CSS viewport, DPR 1, actual RAF-driven draws for four seconds per case and unchanged water reflection/refraction. The hidden case suppresses only forest drawing; geometry generation and owner update remain. Physics time stays fixed, so this is not a full gameplay benchmark. CPU: i9-13900KF, Windows. Native Chrome 156 and bundled Chromium 156/SwiftShader; a separate native adapter probe on this host reported NVIDIA Lovelace, non-fallback. High draws 35 active trees/317,520 leaf triangles; low draws 18/81,648, sharing existing buffers.
+
+| Backend | Quality | Forest | Samples | Mean RAF interval ms | Mean CPU deformation/submission ms | Mean renderer submission ms |
+|---|---|---|---:|---:|---:|---:|
+| WebGPU (Chrome native) | High | Hidden | 241 | 16.68 | 10.50 | 1.02 |
+| WebGPU (Chrome native) | High | Visible | 241 | 16.68 | 10.45 | 1.12 |
+| WebGL2 (SwiftShader) | High | Hidden | 36 | 121.90 | 10.17 | 1.22 |
+| WebGL2 (SwiftShader) | High | Visible | 34 | 135.35 | 10.48 | 1.29 |
+| WebGPU (Chrome native) | Low | Hidden | 240 | 16.75 | 10.63 | 1.03 |
+| WebGPU (Chrome native) | Low | Visible | 241 | 16.68 | 10.57 | 1.14 |
+| WebGL2 (SwiftShader) | Low | Hidden | 49 | 84.37 | 10.27 | 1.08 |
+| WebGL2 (SwiftShader) | Low | Visible | 44 | 95.34 | 10.78 | 1.29 |
+
+Native intervals are display-paced around 60 Hz, so they establish neither uncapped GPU cost nor a speedup. CPU render submission is asynchronous and is not GPU elapsed time. The short SwiftShader windows have large tails (up to ~733 ms p95); the lower-quality run improves its sampled intervals but still renders slowly. Software degradation already exists with the forest hidden; the forest adds work and no general fallback-performance fix is claimed. Other system/GPU activity and measurement order were not controlled. Low quality reduces tree count, leaf index detail, drawing-buffer resolution and reflection capture size without reallocating tree geometry. Renderer resource counters increased about 2.3 MiB at high quality; this is bookkeeping, not driver VRAM. Raw samples/conditions: evidence/forest-2026-11-04/profile-{high,low}.json.

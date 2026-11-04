@@ -15,3 +15,5 @@ Run `npm run verify` followed by `npm run test:browser` for the complete CI chec
 ## GitHub Pages
 
 For the public browser prototype, set the repository visibility to public and set Settings → Pages → Build and deployment → Source to GitHub Actions. The Pages workflow builds with the repository subpath and deploys on pushes to main or a manual dispatch. The published site is public. A pull request cannot itself change the repository visibility or Pages settings.
+
+The current Appalachian canopy uses a pinned MIT-licensed SeedThree generator subset with project-owned materials and placement. See [asset/dependency credits](docs/ASSET_CREDITS.md) and [durable work handoff](docs/WORK_HANDOFF.md) for current scope, evidence and unfinished journey requirements.
