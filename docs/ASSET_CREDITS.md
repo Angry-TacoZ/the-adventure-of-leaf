@@ -11,3 +11,9 @@ Riverbed: Low Tide Rocks diffuse 2K, Dimitrios Savva, [Poly Haven](https://polyh
 Riverbanks: Ganges River Pebbles diffuse 2K, Amal Kumar, [Poly Haven](https://polyhaven.com/a/ganges_river_pebbles), CC0 1.0. Attribution and source are inferred from the filename matching the published asset; the supplied archive has no license file. Only the diffuse JPEG is used; the supplied EXR normal/roughness and displacement maps are not loaded.
 
 Rock diffuse: Coast Sand Rocks 02, Rob Tuytel, [Poly Haven](https://polyhaven.com/a/coast_sand_rocks_02), CC0; source inferred from matching filename, as supplied archive includes no license file. Only diffuse JPEG is used.
+
+Hero yellow-birch leaf surface: `public/assets/yellow-birch-hero-albedo.png`, original AI-generated image created with OpenAI image generation for this project on November 4, 2026. Flat gold/autumn tissue atlas with pinnate and reticulated veins; used as diffuse color and the source for subtle shader bump relief. No third-party leaf photograph was copied. Botanical morphology references: NC State Extension's Betula alleghaniensis account and Virginia Tech's Yellow Birch dendrology fact sheet. Those pages are references, not imported assets. James approved the improved leaf art in chat. The same atlas is used on both sides; a distinct underside scan is not claimed.
+
+Rapier 3D (`@dimforge/rapier3d` 0.21.0), Dimforge, Apache-2.0. Its WASM and JavaScript bindings are distributed with the game; retain the dependency license. The project-authored leaf material is not a biological scan.
+
+SeedThree (SkyeShark), MIT, inspected at commit `cf2eaad39d9b7355ed086aca2a95fb785e539242` as a candidate for tree and ground-cover reuse. No SeedThree source or assets are distributed by this milestone; the inspection checkout is ignored under output/. Any later import must include its MIT notice and the provenance of selected assets rather than assuming all audio/textures share identical terms.
