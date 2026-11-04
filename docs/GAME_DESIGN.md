@@ -6,3 +6,11 @@ The player controls wind, not the leaf as a vehicle. The leaf follows the natura
 Use a damped third-person follow camera just above and behind the leaf, with adjustable distance, height, angle and smoothing; keep obstacles visible. Final cinematic behavior requires James's approval. Water aims for convincing currents, varied speed, displacement, reflection/refraction, turbulence, foam, wakes and smooth wind response, not scientific fluid simulation.
 
 References: [water](https://madebyevan.com/webgl-water/), [Three.js port](https://jeantimex.github.io/threejs-water/), [SeedOcean](https://reed-soul.github.io/SeedOcean/), [floating flowers](https://ripple.carsonye.com/), [After Rain](https://hilimor.github.io/after-rain/). These are quality benchmarks, not assets to copy. A future simple visual placement editor and procedural ecosystem are foundations for later, not this slice.
+
+## Approved regional direction (November 4, 2026)
+
+The journey begins in an Appalachian mountain forest and follows the river to an Atlantic estuary/ocean ending. The playable leaf is based on yellow birch: pointed oval blade, fine serrations and a gold autumn palette. Higher-elevation yellow birch occurrence is documented by the US Forest Service: https://research.fs.usda.gov/feis/species-reviews/betall . The rest of the foliage and shore plants should follow that regional progression; it is not a Rocky Mountain or tropical setting.
+
+James removed automatic upstream obstacle avoidance: the player directs wind to navigate rocks. Physical contacts can still deflect the leaf, and downstream wake turbulence can remain. Prior tests requiring unattended passage through every rock are superseded by this explicit gameplay decision.
+
+James authorizes milestone development previews on GitHub Pages while PRs remain drafts. Previews show a revision label and are not merge/readiness claims. Main remains protected by the normal PR workflow; deployments may use the explicitly allowed development branch.

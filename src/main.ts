@@ -16,6 +16,11 @@ import {
 } from "./simulation";
 import "./style.css";
 import { FIXED_STEP } from "./physics-boundary";
+const revision = import.meta.env.VITE_BUILD_REVISION?.slice(0, 7);
+if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
+  document.querySelector("#hud span")!.textContent =
+    `Development preview · ${revision ?? "local"} · work in progress`;
+}
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGPURenderer;
@@ -475,6 +480,7 @@ window.render_game_to_text = () =>
   });
 if (manual)
   Object.assign(window, {
+    forceLeafTear: () => physics.forceTear(),
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
@@ -492,8 +498,11 @@ if (manual)
   };
 if (manual)
   window.advanceTime = (ms: number) => {
-    const count = Math.ceil(ms / (1000 / 120));
-    for (let i = 0; i < count; i++) update(ms / 1000 / count);
+    accumulator += ms / 1000;
+    while (accumulator + 1e-12 >= FIXED_STEP) {
+      update(FIXED_STEP);
+      accumulator = Math.max(0, accumulator - FIXED_STEP);
+    }
     render(ms / 1000);
   };
 if (import.meta.env.DEV) {
