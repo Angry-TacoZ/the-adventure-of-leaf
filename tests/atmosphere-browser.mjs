@@ -13,7 +13,7 @@ try {
   await page.waitForFunction(() => window.advanceTime);
   const read = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
   const initial = await read(); assert.equal(initial.renderer, native ? "WebGPU" : "WebGL2");
-  assert.equal(initial.sky.cloudPuffs, 64); assert.equal(initial.fish.count, 6);
+  assert.equal(initial.sky.engine, "Eanpa-Sky"); assert.equal(initial.sky.cacheSize, 256); assert.equal(initial.fish.count, 6);
   async function difference(a, b, yStart = 0) {
     return page.evaluate(async ([a, b, yStart]) => {
       async function pixels(encoded) {
@@ -40,7 +40,8 @@ try {
   await page.evaluate(() => { window.setVerificationFishVisible(true); window.advanceTime(0); });
   for (const quality of ["0.5", "1"]) {
     await page.locator("#quality").evaluate((control, value) => { control.value = value; control.dispatchEvent(new Event("change")); }, quality);
-    assert.equal((await read()).sky.cloudPuffs, quality === "1" ? 64 : 32);
+    assert.equal((await read()).sky.cacheSize, quality === "1" ? 256 : 128);
+    assert.equal((await read()).sky.refreshSeconds, quality === "1" ? .25 : .75);
   }
   assert.equal((await read()).resources.geometries, initial.resources.geometries);
   const physics = await page.evaluate(async () => {

@@ -107,7 +107,7 @@ scene.add(new THREE.HemisphereLight(0xd9eff0, 0x455337, 2));
 const sun = new THREE.DirectionalLight(0xffefcc, 2);
 sun.position.set(-6, 14, 8);
 scene.add(sun);
-const sky = await createSky(sun);
+const sky = await createSky(sun, renderer);
 const weatherView = createWeatherView(); scene.add(weatherView.group);
 onFinalPageHide(() => weatherView.dispose());
 scene.add(sky.group);

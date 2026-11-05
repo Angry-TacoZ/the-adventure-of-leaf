@@ -1,7 +1,6 @@
 import { weatherAt } from "./weather";
 import * as THREE from "three/webgpu";
 import * as TSL from "three/tsl";
-import { createSky as createLightweightSky } from "./sky-lightweight";
 
 interface EarthSky {
   domes: THREE.Mesh[];
@@ -18,12 +17,13 @@ type SkyGlobals = typeof globalThis & {
 };
 
 /** Stock-Three adapter. Eanpa owns only sky resources, never the gameplay clock. */
-export async function createSky(light: THREE.DirectionalLight) {
-  const lightweight = createLightweightSky(light);
+export async function createSky(light: THREE.DirectionalLight, renderer: THREE.WebGPURenderer) {
+  light.position.set(-12, 18, -55); light.intensity = 5;
   const group = new THREE.Group(); group.name = "Earth sky";
-  const earthScene = new THREE.Scene(); group.add(earthScene, lightweight.group);
+  const earthScene = new THREE.Scene();
   const globals = globalThis as SkyGlobals;
   const oldThree = globals.THREE, oldMrt = globals.EANPA_NO_MRT;
+  const sampleBudget = "isWebGPUBackend" in renderer.backend ? 24 : 12;
   let earth: EarthSky;
   try {
     globals.THREE = { ...THREE, ...TSL };
@@ -33,7 +33,7 @@ export async function createSky(light: THREE.DirectionalLight) {
     await import("./vendor/eanpa/engine/sky_system.js");
     earth = await globals.makeSkySystem!({ scene: earthScene, opts: {
       hours: 13, clouds: "cumulus", domeRadius: 80,
-      skySamples: 12, lightSamples: 3, stormSamples: 8, cloudPasses: 1,
+      skySamples: sampleBudget, lightSamples: sampleBudget === 24 ? 8 : 3, stormSamples: 8, cloudPasses: 1,
       cloudShadowResolution: 64, cloudShadowSamples: 32,
     } });
   } finally {
@@ -45,12 +45,24 @@ export async function createSky(light: THREE.DirectionalLight) {
     const material = dome.material as THREE.MeshBasicNodeMaterial;
     if (material.colorNode) material.colorNode = TSL.toneMapping(THREE.ACESFilmicToneMapping, 1, material.colorNode);
   }
-  let quality = 1, storm = false;
+  // Capture distant radiance once, rather than raymarching clouds again in
+  // every water/refraction/scene pass. Cube directions preserve reflections.
+  const target = new THREE.CubeRenderTarget(256, { generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  const capture = new THREE.CubeCamera(.015, 120, target as unknown as ConstructorParameters<typeof THREE.CubeCamera>[2]);
+  const skyGeometry = new THREE.SphereGeometry(80, 24, 12);
+  const skyMaterial = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false, fog: false });
+  skyMaterial.colorNode = TSL.cubeTexture(target.texture, TSL.positionWorld.sub(TSL.cameraPosition).normalize());
+  const backdrop = new THREE.Mesh(skyGeometry, skyMaterial); backdrop.frustumCulled = false;
+  group.add(backdrop);
+  let quality = 1, storm = false, lastCapture = -Infinity, captures = 0, cacheSize = 256;
+  await renderer.compileAsync(earthScene, capture.children[0] as THREE.Camera);
   const viewerCamera = new THREE.PerspectiveCamera();
   return {
     group,
     update(time: number, viewer: { y: number; z: number }, offsetX: number, offsetZ: number, nextQuality: number) {
       quality = nextQuality;
+      const nextCacheSize = quality < .75 ? 128 : 256;
+      if (cacheSize !== nextCacheSize) { cacheSize = nextCacheSize; target.setSize(cacheSize, cacheSize); lastCapture = -Infinity; }
       const weather = weatherAt(viewer.z, time);
       const nextStorm = weather.strength > .1;
       if (nextStorm !== storm) { storm = nextStorm; earth.transitionClouds("cumulus", 8, storm ? {
@@ -63,13 +75,17 @@ export async function createSky(light: THREE.DirectionalLight) {
       const shade = 1 - weather.strength * .65;
       earth.setColors({ cloud: [shade, shade, shade], sky: [shade, shade, shade] });
       light.intensity = 5 * (1 - .7 * weather.strength);
-      earthScene.visible = quality >= .75; lightweight.group.visible = quality < .75;
-      lightweight.update(time, viewer, offsetX, offsetZ, quality);
+      group.position.set(0, viewer.y, viewer.z);
       viewerCamera.position.set(0, viewer.y, viewer.z);
       earth.update(time, viewerCamera);
+      if (time < lastCapture || time - lastCapture >= (quality < .75 ? .75 : .25)) {
+        capture.position.copy(viewerCamera.position);
+        capture.update(renderer as unknown as Parameters<THREE.CubeCamera["update"]>[0], earthScene);
+        lastCapture = time; captures++;
+      }
     },
-    diagnostics: () => ({ sun: true, cloudPuffs: quality < .75 ? 32 : 64,
-      engine: quality < .75 ? "lightweight-earth-compatibility" : "Eanpa-Sky", sampleBudget: quality < .75 ? 0 : 12 }),
-    dispose() { earth.dispose(); lightweight.dispose(); group.clear(); },
+    diagnostics: () => ({ sun: true,
+      engine: "Eanpa-Sky", sampleBudget, cacheSize, captures, refreshSeconds: quality < .75 ? .75 : .25 }),
+    dispose() { earth.dispose(); target.dispose(); skyGeometry.dispose(); skyMaterial.dispose(); group.clear(); },
   };
 }
