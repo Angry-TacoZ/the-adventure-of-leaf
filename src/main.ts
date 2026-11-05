@@ -598,6 +598,7 @@ if (manual)
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
+    setVerificationWhitewater: (enabled: boolean) => { optics.foamWeight.value = enabled ? 1 : 0; },
     setVerificationWaterVisible: (visible: boolean) => {
       optics.mesh.visible = visible;
     },

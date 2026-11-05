@@ -29,3 +29,5 @@ Headwaters fish: original stylized brook-trout geometry, fins/eyes and procedura
 ## Eanpa-Sky Earth sky adapter
 
 Five unmodified JavaScript modules and authored procedural cirrus field from SkyeShark/Eanpa-Sky, pinned a197d3dc42577e9b870b471a39d6b1710c5b5633, MIT copyright SkyeShark2026. Source/license retained under src/vendor/eanpa; deployed notice linked in Credits. No demo audio, NASA moon/starmap, scenery or renderer fork imported. Current adapter is in local integration verification; full weather is unfinished.
+
+Whitewater crest/noise shading adapts the GLSL example supplied by James in chat into the project’s TSL pipeline. No external water mesh, texture or new dependency was imported.

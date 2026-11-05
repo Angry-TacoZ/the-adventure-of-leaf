@@ -60,6 +60,8 @@ async function suite(mode, script) {
 }
 if (process.argv.includes("--optics")) {
   if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/whitewater-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/water-entry-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/journey-render-browser.mjs");
@@ -81,6 +83,7 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
+  await suite("dev", "tests/whitewater-browser.mjs");
   await suite("dev", "tests/water-entry-browser.mjs");
   await suite("dev", "tests/journey-render-browser.mjs");
   await suite("dev", "tests/journey-physics-browser.mjs");
