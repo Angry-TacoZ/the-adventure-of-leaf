@@ -125,3 +125,20 @@ Baseline is pinned 3a9473f; current working-source blob hashes and raw samples a
 | WebGL2 | 1920×1080 | journey-headwaters | 9.25 | 4.65 | 3.67 |
 
 Small differences and run-order variability do not support a WebGPU speedup claim. CPU surface deformation and normals remain material costs; moving those evaluations to the GPU is a justified future optimization, requiring preservation of the shared physics surface. This measures hardware paths, not SwiftShader. Renderer counters do not establish driver VRAM stability.
+
+## Advancing-clock weather comparison — November 5, 2026
+
+Pinned baseline3a9473f versus95884ab gameplay source (documentation-only head1d336d4). 13th Gen Intel(R) Core(TM) i9-13900KF, RTX4090, Chrome156.0.8078.47. The physical headwaters pose stays fixed while the render clock advances1/60s per frame, including repeated Eanpa cube refreshes. Quality1/DPR1, identical reflection settings,80 serial samples after60-frame/one-second warmup. These are CPU+GPU queue-fenced completion times, not displayFPS or isolatedGPU time. Other local test browsers had finished; other machine activity remains uncontrolled.
+
+| Backend | Viewport | Pipeline | Mean ms | p95 ms |
+|---|---|---|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 19.23 | 25.60 |
+| WebGPU | 1280×720 | journey-headwaters | 21.38 | 30.80 |
+| WebGPU | 1920×1080 | baseline-headwaters | 21.40 | 30.10 |
+| WebGPU | 1920×1080 | journey-headwaters | 20.15 | 31.80 |
+| WebGL2 | 1280×720 | baseline-headwaters | 11.54 | 17.00 |
+| WebGL2 | 1280×720 | journey-headwaters | 14.79 | 21.40 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 9.60 | 11.90 |
+| WebGL2 | 1920×1080 | journey-headwaters | 15.65 | 24.60 |
+
+Hardware WebGL2 costs more at both sampled resolutions; native WebGPU is mixed with broad tails. No performance improvement is established. Render clock sampling does not model physical journey integration, cold startup, or storm-preset worst cases. The80-frame window contains only a few cloud refreshes, so longer real-time measurements remain necessary. Cloud softness/grain and Linux software timing remain unresolved. Raw samples, conditions and source hashes: evidence/weather-2026-11-05/profile.json.

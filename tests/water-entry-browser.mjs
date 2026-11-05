@@ -1,3 +1,4 @@
+import { compareDiagnosticLeaf } from "./leaf-diagnostic.mjs";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -44,11 +45,19 @@ try {
     const silhouette = await compareLeafContribution(page, reference, referenceBackground, actual, actualBackground);
     const colorMask = await compareLeafSilhouette(page, reference, actual);
     const waterCoverage = await changedPixelFraction(page, actualBackground, referenceBackground, [0.05, 0.25, 0.8, 0.9]);
-    results.push({ frame, time: state.time, camera: state.camera, y: state.y, silhouette, colorMask, waterCoverage });
+    await page.evaluate(() => { window.setVerificationLeafDiagnostic(true); window.advanceTime(0); });
+    const taggedActual = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}-tagged.png` });
+    await page.evaluate(() => { window.setVerificationWaterVisible(false); window.advanceTime(0); });
+    const taggedReference = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}-tagged-reference.png` });
+    await page.evaluate(() => { window.setVerificationLeafDiagnostic(false); window.setVerificationWaterVisible(true); window.advanceTime(0); });
+    const tagged = await compareDiagnosticLeaf(page, taggedReference, taggedActual);
+    results.push({ tagged, frame, time: state.time, camera: state.camera, y: state.y, silhouette, colorMask, waterCoverage });
     await writeFile(`output/web-game/water-entry-${suffix}.json`, JSON.stringify(results, null, 2));
     assert.ok(waterCoverage > 0.75, `near-camera water has holes: ${JSON.stringify(results.at(-1))}`);
-    assert.ok(silhouette.reference > 1000 && silhouette.coverage > 0.85 && silhouette.area > 0.65 && silhouette.area < 1.4,
+    assert.ok(silhouette.reference > 1000 && silhouette.coverage > 0.85 && silhouette.area > 0.65,
       `low rapid camera lost the hero: ${JSON.stringify(results.at(-1))}`);
+    assert.ok(tagged.reference > 1000 && tagged.coverage > .85 && tagged.area > .65 && tagged.area < 1.4,
+      `leaf material is clipped or duplicated: ${JSON.stringify(results.at(-1))}`);
   }
   assert.deepEqual(errors, []);
   await writeFile(`output/web-game/water-entry-${suffix}.json`, JSON.stringify(results, null, 2));

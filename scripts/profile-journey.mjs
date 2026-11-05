@@ -54,7 +54,7 @@ try {
           assert.ok(body.includes(marker), "profiling injection marker changed");
           await route.fulfill({ response, body: body.replace(marker, marker + `
             window.completeProfileFrame = async () => {
-              const start = performance.now(); render(0); const submit = performance.now();
+              const start = performance.now(); ${process.argv.includes("--animate") ? "state.time += 1 / 60;" : ""} render(0); const submit = performance.now();
               if ('isWebGPUBackend' in renderer.backend) await renderer.backend.device.queue.onSubmittedWorkDone();
               else renderer.backend.gl.finish();
               return { submit: submit-start, complete: performance.now()-start };
@@ -86,7 +86,7 @@ try {
         console.log(JSON.stringify({ label, backend, viewport: result.viewport, cpuSubmitMs: result.cpuSubmitMs, serialCompletionMs: result.serialCompletionMs }));
         await p.close();
       }
-  const sourceBlobs = Object.fromEntries(["src/main.ts", "src/water.ts", "src/water-grid.ts", "src/journey.ts", "src/simulation.ts", "src/forest.ts", "src/understory.ts", "src/bank-terrain.ts"].map((file) =>
+  const sourceBlobs = Object.fromEntries(["src/main.ts", "src/sky.ts", "src/weather.ts", "src/weather-view.ts", "src/lightning.ts", "src/water.ts", "src/water-grid.ts", "src/journey.ts", "src/simulation.ts", "src/forest.ts", "src/understory.ts", "src/bank-terrain.ts"].map((file) =>
     [file, execFileSync("git", ["hash-object", `--path=${file}`, file], { cwd: root, encoding: "utf8" }).trim()]));
-  await writeFile("output/journey-profile.json", JSON.stringify({ cpu: os.cpus()[0].model, browser: browser.version(), baseline: "3a9473fb8c174ec568202b7fa9d997c233190ec3", sourceBlobs, conditions: "Fixed pose/time, quality1, hardware Chrome, profileGPU instrumentation enabled, 80 serialized frames after at least 60 frames and one second warmup. Completion includes CPU plus GPU queue fence/gl.finish; it is not isolated GPU time or display FPS. Batch timestamps have a narrower scope. Other active GPU work is uncontrolled.", results }, null, 2));
+  await writeFile(process.argv.includes("--animate") ? "output/weather-profile.json" : "output/journey-profile.json", JSON.stringify({ cpu: os.cpus()[0].model, browser: browser.version(), baseline: "3a9473fb8c174ec568202b7fa9d997c233190ec3", sourceBlobs, conditions: `${process.argv.includes("--animate") ? "Fixed physical pose, render animation clock advances1/60s per serial frame (no physics integration); cloud refreshes included" : "Fixed pose/time"}, quality1, hardware Chrome, profileGPU instrumentation enabled, 80 serialized frames after at least 60 frames and one second warmup. Completion includes CPU plus GPU queue fence/gl.finish; it is not isolated GPU time or display FPS. Batch timestamps have a narrower scope. Other active GPU work is uncontrolled.`, results }, null, 2));
 } finally { await browser?.close(); server.kill(); await exited; }

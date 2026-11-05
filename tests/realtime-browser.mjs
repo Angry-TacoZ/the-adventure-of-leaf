@@ -136,6 +136,7 @@ try {
   await page.evaluate(() => {
     window.mockPad.axes[0] = 0;
   });
+  assert.equal(await page.evaluate(() => typeof window.setVerificationLeafDiagnostic), "undefined");
   // Observe the real requestAnimationFrame loop, without calling advanceTime.
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).z < -13,
