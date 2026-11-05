@@ -65,9 +65,9 @@ try {
   assert.ok((await read()).time < paused.time + 0.5, "resume simulated time spent in menus");
   const pressPad = async (index) => {
     await page.evaluate((i) => { window.menuPad.buttons[i].value = 1; }, index);
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
     await page.evaluate((i) => { window.menuPad.buttons[i].value = 0; }, index);
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
   };
   await pressPad(9); await screen("pause");
   await pressPad(1); await screen(null);

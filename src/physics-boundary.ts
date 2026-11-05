@@ -1,3 +1,4 @@
+import { weatherAt } from "./weather.ts";
 import {
   surface,
   flowField,
@@ -41,6 +42,7 @@ export function sampleEnvironment(
   state: State,
   params: Params,
 ) {
+  const weather = weatherAt(z, state.time);
   const height = surface(x, z, state.time, params, state);
   const epsilon = 0.15;
   const slopeX =
@@ -60,8 +62,8 @@ export function sampleEnvironment(
     normal: { x: -slopeX / length, y: 1 / length, z: -slopeZ / length },
     current: flowField(x, z, state.time, params),
     wind: {
-      x: state.windX * state.intensity * params.windStrength,
-      z: state.windZ * state.intensity * params.windStrength,
+      x: state.windX * state.intensity * params.windStrength + weather.gustX,
+      z: state.windZ * state.intensity * params.windStrength + weather.gustZ,
     },
     obstacles: obstacles as readonly Readonly<(typeof obstacles)[number]>[],
   };

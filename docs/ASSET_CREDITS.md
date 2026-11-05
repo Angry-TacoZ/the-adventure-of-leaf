@@ -25,3 +25,7 @@ Supplied understory: Fern 02, Dandelion 01, Celandine 01, Searsia Lucida, Moss 0
 The new soil surface is a project-authored procedural Canvas texture, not a downloaded image or a scan.
 
 Headwaters fish: original stylized brook-trout geometry, fins/eyes and procedural Canvas markings, authored for this project with Codex assistance. Species reference: [National Park Service, Great Smoky Mountains fish](https://www.nps.gov/grsm/learn/nature/fish.htm), which identifies the native brook trout. No NPS image or third-party fish model was copied. Sun and cloud geometry/vertex colors are original procedural assets, also authored with Codex assistance.
+
+## Eanpa-Sky Earth sky adapter
+
+Five unmodified JavaScript modules and authored procedural cirrus field from SkyeShark/Eanpa-Sky, pinned a197d3dc42577e9b870b471a39d6b1710c5b5633, MIT copyright SkyeShark2026. Source/license retained under src/vendor/eanpa; deployed notice linked in Credits. No demo audio, NASA moon/starmap, scenery or renderer fork imported. Current adapter is in local integration verification; full weather is unfinished.
