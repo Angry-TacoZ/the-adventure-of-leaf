@@ -35,11 +35,11 @@ try {
     const state = await page.evaluate(() => JSON.parse(window.render_game_to_text()));
     const actual = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}.png` });
     await page.evaluate(() => { window.setVerificationLeafVisible(false); window.advanceTime(0); });
-    const actualBackground = await page.screenshot();
+    const actualBackground = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}-background.png` });
     await page.evaluate(() => { window.setVerificationWaterVisible(false); window.advanceTime(0); });
-    const referenceBackground = await page.screenshot();
+    const referenceBackground = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}-reference-background.png` });
     await page.evaluate(() => { window.setVerificationLeafVisible(true); window.advanceTime(0); });
-    const reference = await page.screenshot();
+    const reference = await page.screenshot({ path: `output/web-game/water-entry-${suffix}-${frame}-reference.png` });
     await page.evaluate(() => { window.setVerificationWaterVisible(true); window.advanceTime(0); });
     const silhouette = await compareLeafContribution(page, reference, referenceBackground, actual, actualBackground);
     const colorMask = await compareLeafSilhouette(page, reference, actual);
