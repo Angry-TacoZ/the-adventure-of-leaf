@@ -12,6 +12,9 @@ const browser = await chromium.launch(native ? { channel: "chrome", headless: tr
 });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  // Software-rendered CI captures can exceed Playwright's 30s default.
+  // Keep every pose and pixel assertion; bound individual operations at60s.
+  page.setDefaultTimeout(60000);
   const errors = [], results = []; page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   if (counterfactual) await page.route("**/src/water.ts*", async (route) => {
