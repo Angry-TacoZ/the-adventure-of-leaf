@@ -94,8 +94,8 @@ export async function createRiverLeaf() {
       collider.setTranslation({ x: position.x - x, y: position.y, z: position.z - z });
   }
   const material = R.SoftBodyMaterial.uniform(30, 1);
-  material.tearStrain = 0.25;
-  material.tearForce = 0.05;
+  material.tearStrain = 0.08;
+  material.tearForce = 0.01;
   material.tearSmoothing = 0.04;
   material.maxTearsPerStep = 1;
   material.edgePlasticYield = 0.3;
