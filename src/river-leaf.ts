@@ -104,6 +104,9 @@ export async function createRiverLeaf() {
   // Sustained rock grinding tears the leaf: a free 2 g cloth builds no engine
   // tear load against smooth balls, so contact time drives damage instead.
   const grind = createGrindMeter(0.6, 0.15);
+  // Leaf half-length: contact counts from the leaf edge, not its centre,
+  // so a leaf parked edge-on against a rock still grinds.
+  const LEAF_HALF = 0.45;
   let lastStepMs = 0,
     tears = 0;
   let origin: Vector3Data = { x: 0, y: 0.08, z: 0 };
@@ -234,13 +237,13 @@ export async function createRiverLeaf() {
       state.vy = vy / n;
       state.vz = vz / n;
       // Sustained rock grinding cuts the leaf. Gap is route-space distance
-      // from leaf centre to the nearest rock surface; the cut lands on the
+      // from the leaf edge to the nearest rock surface; the cut lands on the
       // rock-side surface point converted back to particle space.
       let gap = Infinity, contactX = state.x, contactZ = state.z;
       for (const rock of obstacles) {
         const dx = state.x - rock.x, dz = state.z - rock.z;
         const dist = Math.hypot(dx, dz);
-        const d = dist - rock.r;
+        const d = dist - rock.r - LEAF_HALF;
         if (d < gap) {
           gap = d;
           const s = dist > 1e-6 ? rock.r / dist : 0;
