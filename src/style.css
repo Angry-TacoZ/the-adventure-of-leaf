@@ -29,3 +29,5 @@ body.menu-open #hud,body.menu-open #quality-control{visibility:hidden}
 @keyframes menu-appear{from{opacity:0}to{opacity:1}}
 @media(max-width:640px){.game-menu{left:16px;top:16px;transform:none;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:24px}.pause-button{top:10px;right:12px}.game-menu h1{font-size:34px}}
 @media(prefers-reduced-motion:reduce){.game-menu[open]{animation:none}.game-menu button{transition:none}}
+
+.game-menu h1.home-title{color:#d6bd65}
