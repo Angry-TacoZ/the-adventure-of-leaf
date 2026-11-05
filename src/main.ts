@@ -1,3 +1,5 @@
+import { createStormTimeline } from "./lightning";
+import { weatherAt } from "./weather";
 import { createWeatherView } from "./weather-view";
 import { onFinalPageHide } from "./lifecycle";
 import { createForest } from "./forest";
@@ -333,6 +335,7 @@ let accumulator = 0,
 let frames = 0;
 let redraw = true, previousTears = 0;
 const audio = createGameAudio();
+const stormTimeline = createStormTimeline();
 onFinalPageHide(() => { void audio.dispose(); });
 function resetGame() {
   placeLeafAtStart(); accumulator = 0; previousTears = 0; keys.clear(); redraw = true;
@@ -394,6 +397,7 @@ function update(dt: number) {
   const wasLanded = openingLanded;
   updateWind(state, p, input(), dt);
   physics.step(state, p);
+  if (stormTimeline.step(state.time, weatherAt(state.z, state.time).strength).thunder) audio.play("thunder");
   if (state.laps !== laps) {
     openingLanded = startInRiver;
     camera.position.set(

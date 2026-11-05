@@ -25,3 +25,5 @@ Settings offers graphics quality and separate master, water, wind and effects vo
 If a controller does not respond, use a browser-recognized standard controller and press a button to activate it. Keyboard controls remain available. A physical-controller acceptance pass is still required; automated checks use the standard Gamepad API mapping.
 
 Menus support pointer, keyboard focus/Enter and standard-controller stick/D-pad with A to select and B to return. James Lane is creative director. The Credits menu includes technologies, license links and AI disclosure; detailed acknowledgements are in ASSET_CREDITS.md. Sounds are provisional procedural effects; no musical score is included.
+
+Draft weather: the valley has gusts, rain, cloud darkening and distant lightning with delayed procedural thunder. Wind controls remain available. Storm timing pauses with gameplay; thunder follows the effects/master volume controls. Weather rendering and audio balance remain under verification.

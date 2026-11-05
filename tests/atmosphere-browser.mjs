@@ -13,7 +13,7 @@ try {
   await page.waitForFunction(() => window.advanceTime);
   const read = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
   const initial = await read(); assert.equal(initial.renderer, native ? "WebGPU" : "WebGL2");
-  assert.equal(initial.sky.engine, "Eanpa-Sky"); assert.equal(initial.sky.cacheSize, 256); assert.equal(initial.fish.count, 6);
+  assert.equal(initial.sky.engine, "Eanpa-Sky"); assert.equal(initial.sky.cacheSize, native ? 256 : 128); assert.equal(initial.fish.count, 6);
   async function difference(a, b, yStart = 0) {
     return page.evaluate(async ([a, b, yStart]) => {
       async function pixels(encoded) {
@@ -40,10 +40,26 @@ try {
   await page.evaluate(() => { window.setVerificationFishVisible(true); window.advanceTime(0); });
   for (const quality of ["0.5", "1"]) {
     await page.locator("#quality").evaluate((control, value) => { control.value = value; control.dispatchEvent(new Event("change")); }, quality);
-    assert.equal((await read()).sky.cacheSize, quality === "1" ? 256 : 128);
+    assert.equal((await read()).sky.cacheSize, quality === "1" ? (native ? 256 : 128) : (native ? 128 : 64));
     assert.equal((await read()).sky.refreshSeconds, quality === "1" ? .25 : .75);
   }
   assert.equal((await read()).resources.geometries, initial.resources.geometries);
+  for (const x of [-100, 100]) {
+    await page.goto(`${process.env.LEAF_BASE_URL}/?testMode=manual&journeyZ=-530&journeyX=${x}${native ? "" : "&forceWebGL"}`);
+    await page.waitForFunction(() => window.advanceTime);
+    await page.evaluate(() => window.advanceTime(16));
+    const oceanSky = await page.screenshot();
+    await page.evaluate(() => { window.setVerificationSkyVisible(false); window.advanceTime(0); });
+    const bareOcean = await page.screenshot();
+    const coverage = await page.evaluate(async ([a, b]) => {
+      const decode = async (data) => { const i = new Image(); i.src = `data:image/png;base64,${data}`; await i.decode(); const c = document.createElement("canvas"); c.width = i.width; c.height = i.height; const ctx = c.getContext("2d"); ctx.drawImage(i, 0, 0); return ctx.getImageData(0, 0, c.width, 200).data; };
+      const [first, second] = await Promise.all([decode(a), decode(b)]); let changed = 0;
+      for (let i = 0; i < first.length; i += 4) if (Math.abs(first[i]-second[i])+Math.abs(first[i+1]-second[i+1])+Math.abs(first[i+2]-second[i+2]) > 20) changed++;
+      return changed / (first.length / 4);
+    }, [oceanSky.toString("base64"), bareOcean.toString("base64")]);
+    assert.ok(coverage > .8, `sky does not enclose lateral ocean camera at${x}: ${coverage}`);
+  }
+
   const physics = await page.evaluate(async () => {
     const { createRiverLeaf } = await import("/src/river-leaf.ts");
     const { createFishView } = await import("/src/fish-view.ts");

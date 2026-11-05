@@ -1,3 +1,4 @@
+import { lightningAt } from "./lightning";
 import { weatherAt } from "./weather";
 import * as THREE from "three/webgpu";
 import * as TSL from "three/tsl";
@@ -47,21 +48,23 @@ export async function createSky(light: THREE.DirectionalLight, renderer: THREE.W
   }
   // Capture distant radiance once, rather than raymarching clouds again in
   // every water/refraction/scene pass. Cube directions preserve reflections.
-  const target = new THREE.CubeRenderTarget(256, { generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  const highCacheSize = sampleBudget === 24 ? 256 : 128;
+  const target = new THREE.CubeRenderTarget(highCacheSize, { generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
   const capture = new THREE.CubeCamera(.015, 120, target as unknown as ConstructorParameters<typeof THREE.CubeCamera>[2]);
   const skyGeometry = new THREE.SphereGeometry(80, 24, 12);
   const skyMaterial = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false, fog: false });
-  skyMaterial.colorNode = TSL.cubeTexture(target.texture, TSL.positionWorld.sub(TSL.cameraPosition).normalize());
+  const flash = TSL.uniform(0);
+  skyMaterial.colorNode = TSL.cubeTexture(target.texture, TSL.positionWorld.sub(TSL.cameraPosition).normalize()).mul(flash.add(1));
   const backdrop = new THREE.Mesh(skyGeometry, skyMaterial); backdrop.frustumCulled = false;
   group.add(backdrop);
-  let quality = 1, storm = false, lastCapture = -Infinity, captures = 0, cacheSize = 256;
+  let quality = 1, storm = false, lastCapture = -Infinity, captures = 0, cacheSize = highCacheSize;
   await renderer.compileAsync(earthScene, capture.children[0] as THREE.Camera);
   const viewerCamera = new THREE.PerspectiveCamera();
   return {
     group,
-    update(time: number, viewer: { y: number; z: number }, offsetX: number, offsetZ: number, nextQuality: number) {
+    update(time: number, viewer: { x: number; y: number; z: number }, offsetX: number, offsetZ: number, nextQuality: number) {
       quality = nextQuality;
-      const nextCacheSize = quality < .75 ? 128 : 256;
+      const nextCacheSize = quality < .75 ? highCacheSize / 2 : highCacheSize;
       if (cacheSize !== nextCacheSize) { cacheSize = nextCacheSize; target.setSize(cacheSize, cacheSize); lastCapture = -Infinity; }
       const weather = weatherAt(viewer.z, time);
       const nextStorm = weather.strength > .1;
@@ -74,9 +77,10 @@ export async function createSky(light: THREE.DirectionalLight, renderer: THREE.W
       } : {}); }
       const shade = 1 - weather.strength * .65;
       earth.setColors({ cloud: [shade, shade, shade], sky: [shade, shade, shade] });
-      light.intensity = 5 * (1 - .7 * weather.strength);
-      group.position.set(0, viewer.y, viewer.z);
-      viewerCamera.position.set(0, viewer.y, viewer.z);
+      flash.value = lightningAt(time, weather.strength).flash * 1.5;
+      light.intensity = 5 * (1 - .7 * weather.strength) + flash.value * 3;
+      group.position.set(viewer.x, viewer.y, viewer.z);
+      viewerCamera.position.set(viewer.x, viewer.y, viewer.z);
       earth.update(time, viewerCamera);
       if (time < lastCapture || time - lastCapture >= (quality < .75 ? .75 : .25)) {
         capture.position.copy(viewerCamera.position);

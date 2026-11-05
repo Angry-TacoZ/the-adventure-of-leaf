@@ -56,25 +56,25 @@ export function createGameAudio() {
       gain(water, playing ? volumes.water * Math.min(0.9, 0.16 + current * 0.1) : 0);
       gain(wind, playing ? volumes.wind * Math.min(0.8, windStrength * 0.3) : 0);
     },
-    play(kind: "click" | "splash" | "tear") {
+    play(kind: "click" | "splash" | "tear" | "thunder") {
       if (!context || !master || !effects || !buffer || context.state !== "running" || sources.size >= 8) return;
       const now = context.currentTime, envelope = context.createGain(); envelope.connect(effects);
       envelope.gain.setValueAtTime(0, now);
-      envelope.gain.linearRampToValueAtTime(kind === "click" ? 0.03 : 0.32, now + 0.015);
-      envelope.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "click" ? 0.09 : 0.45));
+      envelope.gain.linearRampToValueAtTime(kind === "click" ? 0.03 : kind === "thunder" ? 0.22 : 0.32, now + 0.015);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "click" ? 0.09 : kind === "thunder" ? 1.6 : 0.45));
       let source: AudioScheduledSourceNode;
       if (kind === "click") {
         const tone = context.createOscillator(); tone.type = "triangle"; tone.frequency.value = 260; source = tone; tone.connect(envelope);
       } else {
         const noise = context.createBufferSource(); noise.buffer = buffer;
-        const filter = context.createBiquadFilter(); filter.type = "bandpass";
-        filter.frequency.value = kind === "tear" ? 2400 : 600;
+        const filter = context.createBiquadFilter(); filter.type = kind === "thunder" ? "lowpass" : "bandpass";
+        filter.frequency.value = kind === "tear" ? 2400 : kind === "thunder" ? 180 : 600;
         noise.connect(filter); filter.connect(envelope); source = noise;
         source.addEventListener("ended", () => filter.disconnect(), { once: true });
       }
       sources.add(source);
       source.addEventListener("ended", () => { source.disconnect(); envelope.disconnect(); sources.delete(source); }, { once: true });
-      source.start(now); source.stop(now + (kind === "click" ? 0.1 : 0.5));
+      source.start(now); source.stop(now + (kind === "click" ? 0.1 : kind === "thunder" ? 1.7 : 0.5));
     },
     diagnostics: () => ({ state: unavailable ? "unavailable" : context?.state ?? "locked", volumes: { ...volumes },
       levels: { master: master?.gain.value ?? 0, water: water?.gain.value ?? 0, wind: wind?.gain.value ?? 0, effects: effects?.gain.value ?? 0 },
