@@ -1,0 +1,18 @@
+[
+  {
+    "z": 0,
+    "metrics": {
+      "changed": 0,
+      "bright": 0
+    },
+    "backend": "WebGPU"
+  },
+  {
+    "z": -140,
+    "metrics": {
+      "changed": 14711,
+      "bright": 3081
+    },
+    "backend": "WebGPU"
+  }
+]

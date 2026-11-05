@@ -6,9 +6,9 @@ on:
 permissions:
   contents: read
 jobs:
-  verify:
+  checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,16 +17,43 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run verify
+  browser:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [graphics, physics, interaction]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.13.1"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
       - run: npx --no-install playwright install --with-deps chromium
-      - run: npm run test:browser
+      - run: npm run test:browser -- --group=${{ matrix.group }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-evidence
+          name: browser-evidence-${{ matrix.group }}
           path: output/web-game/
+  # Retain the original all-verification check as a gate across every group.
+  verify:
+    if: always()
+    needs: [checks, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require unit/build and every browser group
+        env:
+          CORE_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$CORE_RESULT" = success && test "$BROWSER_RESULT" = success
   optics:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

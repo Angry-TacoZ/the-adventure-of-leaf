@@ -1,3 +1,4 @@
+import type Node from "three/src/nodes/core/Node.js";
 import * as THREE from "three/webgpu";
 import {
   reflector,
@@ -21,6 +22,15 @@ import {
   getScreenPosition,
   cameraProjectionMatrix,
   smoothstep,
+  attribute,
+  frontFacing,
+  sin,
+  Fn,
+  If,
+  vec2,
+  fract,
+  floor,
+  dot,
 } from "three/tsl";
 
 // The opaque scene (including the complete leaf) is captured before transparent water.
@@ -39,6 +49,28 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   }
   const reflectionWeight = uniform(1);
   const refractionWeight = uniform(1);
+  const foamTime = uniform(0);
+  const foamWeight = uniform(1);
+  // Adapted from James's crest/FBM reference. Two noise octaves are evaluated
+  // only on eligible crests; surface displacement remains shared with physics.
+  const hash = (p: Node<"vec2">) => fract(sin(dot(p, vec2(127.1, 311.7))).mul(43758.5453));
+  const noise = Fn(([p]: [Node<"vec2">]) => {
+    const cell = floor(p), f = fract(p), u = f.mul(f).mul(float(3).sub(f.mul(2)));
+    return mix(mix(hash(cell), hash(cell.add(vec2(1, 0))), u.x),
+      mix(hash(cell.add(vec2(0, 1))), hash(cell.add(vec2(1, 1))), u.x), u.y);
+  });
+  const foam = Fn(() => {
+    const amount = float(0).toVar(), crest = attribute("aFoam", "float");
+    If(frontFacing.and(crest.greaterThan(0.01)), () => {
+      // Constant phase travels toward negative Z, downstream with the river.
+      const flowZ = positionWorld.z.add(foamTime.mul(2.5));
+      const p = vec2(positionWorld.x.mul(2.2).add(sin(flowZ.mul(.65)).mul(.3)), flowZ.mul(3.2));
+      const turbulence = noise(p).mul(.7).add(noise(p.mul(2.03).add(vec2(7, 13))).mul(.3));
+      const patches = smoothstep(.30, .74, turbulence);
+      amount.assign(smoothstep(.12, .88, crest).mul(patches.mul(.6)).mul(foamWeight));
+    });
+    return amount;
+  })();
   const eye = cameraPosition.sub(positionWorld).normalize();
   const fresnel = float(0.02037).add(
     float(0.97963).mul(float(1).sub(normalWorld.dot(eye).max(0)).pow(5)),
@@ -51,8 +83,9 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const ray = refract(
     positionView.normalize(),
     normalView.normalize(),
-    float(1 / 1.333),
+    frontFacing.select(float(1 / 1.333), float(1.333)),
   );
+  const reflectionMix = ray.length().lessThan(0.001).select(float(1), fresnel);
   // One depth-guided projected Snell step. This is bounded screen-space refraction.
   const path = positionView.z
     .sub(sceneZ)
@@ -82,8 +115,12 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const foreground = candidateZ.greaterThan(positionView.z);
   const safeUV = foreground.select(screenUV, candidateUV);
   const safeZ = foreground.select(sceneZ, candidateZ);
+  // Millimetre-scale contact matters for the paper-thin hero. A centimetres-wide
+  // depth tolerance pulled isolated gold slivers across nearby rock silhouettes.
+  // Fall back to the undistorted capture at these discontinuities, retaining the
+  // submerged leaf rather than discarding water or lifting the physics surface.
   const continuity = float(1).sub(
-    smoothstep(0.03, 0.1, safeZ.sub(sceneZ).abs()),
+    smoothstep(0.002, 0.01, safeZ.sub(sceneZ).abs()),
   );
   const refractedUV = mix(screenUV, safeUV, continuity);
   const sampledZ = perspectiveDepthToViewZ(
@@ -100,12 +137,19 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
   const below = viewportTexture(refractedUV)
     .rgb.mul(transmission)
     .add(tint.mul(vec3(1).sub(transmission)));
+  // Thin floating objects displace the foam layer. Use the existing scene depth
+  // to retain their surface detail without changing their physical position.
+  const foamDepth = positionView.z.sub(sceneZ).max(0)
+    .mul(normalView.dot(positionView.normalize()).abs());
+  const surfaceFoam = foam.mul(smoothstep(.1, .5, foamDepth));
   const material = new THREE.MeshBasicNodeMaterial({
     transparent: true,
     depthWrite: false,
+    side: THREE.DoubleSide,
+    forceSinglePass: true,
   });
   material.outputNode = vec4(
-    mix(
+    mix(mix(
       benchmark === "no-depth"
         ? viewportTexture(screenUV).rgb
         : benchmark === "no-color"
@@ -114,8 +158,8 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
       benchmark === "no-reflection"
         ? tint
         : mix(tint, reflection.rgb, reflectionWeight),
-      fresnel,
-    ),
+      reflectionMix,
+    ), vec3(0.95, 0.98, 1), surfaceFoam),
     1,
   );
   const mesh = new THREE.Mesh(geometry, material);
@@ -134,8 +178,17 @@ export function createRiverWater(geometry: THREE.BufferGeometry) {
     mesh,
     material,
     reflectionWeight,
+    foamWeight,
     refractionWeight,
     absorption,
+    setSurfaceFrame(height: number, z: number, slope: number, viewer: { y: number; z: number }, time: number) {
+      foamTime.value = time;
+      mesh.position.y = height;
+      reflection.target.position.y = -z;
+      // Capture the viewed side rather than clearing the reflection below its plane.
+      const below = viewer.y < height + 0.12 + slope * (viewer.z - z);
+      reflection.target.rotation.x = -Math.atan(slope) + (below ? Math.PI : 0);
+    },
     setQuality(value: number) {
       reflection.reflector.resolutionScale =
         0.5 * Math.min(1, Math.max(0.25, value));

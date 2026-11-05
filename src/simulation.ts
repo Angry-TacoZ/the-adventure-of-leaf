@@ -1,3 +1,4 @@
+import { riverExtent, waterLevel, rapidsStrength, currentScale } from "./journey.ts";
 export type Params = {
   current: number;
   variation: number;
@@ -74,14 +75,32 @@ export const initial = (): State => ({
   collision: false,
   laps: 0,
 });
-export const river = { start: 20, end: -110, stop: -109.7 };
+export const river = riverExtent;
 export const obstacle = { x: 0.25, z: -9, r: 1.05 };
 export const obstacles = [
   obstacle,
   { x: -2.3, z: -31, r: 0.85 },
   { x: 1.2, z: -54, r: 1 },
   { x: -2.0, z: -78, r: 1.1 },
+  { x: -1.3, z: -119, r: 0.65 },
+  { x: 0.4, z: -134, r: 0.8 },
+  { x: -2, z: -148, r: 0.65 },
+  { x: -0.2, z: -161, r: 0.9 },
+  { x: -1.5, z: -178, r: 0.65 },
+  { x: 1.2, z: -289, r: 0.85 },
+  { x: -2.5, z: -320, r: 1.1 },
+  { x: 0.5, z: -352, r: 0.9 },
+  { x: -3.5, z: -397, r: 0.7 },
 ];
+// Fixed spatial buckets keep per-particle and per-water-vertex scans local.
+const rockBuckets = new Map<number, typeof obstacles>();
+for (const rock of obstacles)
+  for (let cell = Math.floor((rock.z - 14) / 16); cell <= Math.floor((rock.z + 6) / 16); cell++) {
+    const bucket = rockBuckets.get(cell) ?? [];
+    bucket.push(rock); rockBuckets.set(cell, bucket);
+  }
+const noRocks: typeof obstacles = [];
+const nearbyRocks = (z: number) => rockBuckets.get(Math.floor(z / 16)) ?? noRocks;
 export function surface(
   x: number,
   z: number,
@@ -101,7 +120,8 @@ export function surface(
   >,
 ) {
   const { intensity, windX, windZ, windOffsetX, windOffsetZ } = wind;
-  const a = p.ripple * (1 + intensity * 0.55);
+  const rapids = rapidsStrength(z);
+  const a = p.ripple * (1 + intensity * 0.55 + rapids * 1.3);
   const waves =
     a *
     (Math.sin(z * 1.5 + t * 2.1 + x * 0.5) * 0.55 +
@@ -109,7 +129,7 @@ export function surface(
       Math.sin(z * 3.1 + x * 1.3 + t * 3) * 0.15) *
     p.damping;
   let eddy = 0;
-  for (const rock of obstacles) {
+  for (const rock of nearbyRocks(z)) {
     const distance = Math.hypot(x - rock.x, z - rock.z);
     if (distance < 5)
       eddy +=
@@ -147,40 +167,33 @@ export function surface(
       Math.exp(-r * 1.2) *
       (1 - Math.exp(-r * 8));
   }
-  return waves + eddy + windWaves + leafRipple;
+  return waterLevel(z) + waves + eddy + windWaves + leafRipple;
 }
 export function current(x: number, z: number, t: number, p: Params) {
   return Math.max(
     0.15,
-    p.current *
+    p.current * currentScale(z) *
       (1 +
         p.variation * Math.sin(z * 0.31 + t * 0.37) +
         p.turbulence * 0.25 * Math.sin(x * 3 + t)),
   );
 }
-// A local steering field approximates water splitting upstream and rejoining downstream.
-// The slight asymmetric split avoids an exact centreline stagnation point.
+// Currents carry the leaf downstream; steering around hazards belongs to the player.
+// Bounded wake turbulence is applied only after an obstacle, never as upstream avoidance.
 export function flowField(x: number, z: number, t: number, p: Params) {
   const speed = current(x, z, t, p);
-  let lateral = 0,
-    slowdown = 0;
-  for (const rock of obstacles) {
+  let lateral = 0;
+  for (const rock of nearbyRocks(z)) {
     const dx = x - rock.x,
       dz = z - rock.z;
-    if (Math.abs(dz) > 12) continue;
-    const approach =
-      Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 1.7) ** 2));
-    const split = Math.tanh((dx - 0.15) * 3);
+    if (dz >= -rock.r || dz < -12) continue;
     const wake =
       Math.exp(-(((dz + 2) / 2.5) ** 2)) * Math.exp(-((dx / 2) ** 2));
-    lateral +=
-      speed * 0.85 * approach * split +
-      p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
-    slowdown = Math.max(slowdown, approach * 0.35);
+    lateral += p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
   }
-  return { x: lateral, z: -speed * (1 - slowdown) };
+  return { x: lateral, z: -speed };
 }
-export function step(
+export function updateWind(
   s: State,
   p: Params,
   input: { x: number; z: number; raise: number; lower: number },
@@ -205,6 +218,14 @@ export function step(
   // Reversing or changing wind cannot teleport an existing ripple pattern.
   s.windOffsetX += s.windX * p.windStrength * s.intensity * dt;
   s.windOffsetZ += s.windZ * p.windStrength * s.intensity * dt;
+}
+export function step(
+  s: State,
+  p: Params,
+  input: { x: number; z: number; raise: number; lower: number },
+  dt: number,
+) {
+  updateWind(s, p, input, dt);
   const flow = flowField(s.x, s.z, s.time, p);
   const wind = p.windStrength * s.intensity;
   const targetX = flow.x + s.windX * wind;

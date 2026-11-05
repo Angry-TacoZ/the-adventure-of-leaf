@@ -1,0 +1,212 @@
+[
+  {
+    "stage": "rapids",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -144,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -140
+    },
+    "resources": {
+      "attributes": 92,
+      "attributesSize": 3396872,
+      "geometries": 32,
+      "indexAttributes": 23,
+      "indexAttributesSize": 987426,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 41,
+      "programsSize": 202407,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 24,
+      "texturesSize": 149399272,
+      "uniformBuffers": 94,
+      "uniformBuffersSize": 95520,
+      "total": 154081497
+    }
+  },
+  {
+    "stage": "lake",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -232,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -230
+    },
+    "resources": {
+      "attributes": 66,
+      "attributesSize": 3258312,
+      "geometries": 22,
+      "indexAttributes": 17,
+      "indexAttributesSize": 968226,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 38,
+      "programsSize": 179309,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 18,
+      "texturesSize": 115853230,
+      "uniformBuffers": 75,
+      "uniformBuffersSize": 80992,
+      "total": 120340069
+    }
+  },
+  {
+    "stage": "valley",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -324,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -320
+    },
+    "resources": {
+      "attributes": 45,
+      "attributesSize": 2226576,
+      "geometries": 16,
+      "indexAttributes": 12,
+      "indexAttributesSize": 825810,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 28,
+      "programsSize": 151043,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 18,
+      "texturesSize": 115853230,
+      "uniformBuffers": 52,
+      "uniformBuffersSize": 57872,
+      "total": 119114531
+    }
+  },
+  {
+    "stage": "lowlands",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -404,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -400
+    },
+    "resources": {
+      "attributes": 27,
+      "attributesSize": 1686444,
+      "geometries": 10,
+      "indexAttributes": 8,
+      "indexAttributesSize": 753522,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 21,
+      "programsSize": 108974,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 16,
+      "texturesSize": 93139763,
+      "uniformBuffers": 36,
+      "uniformBuffersSize": 51424,
+      "total": 95740127
+    }
+  },
+  {
+    "stage": "estuary",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -472,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -470
+    },
+    "resources": {
+      "attributes": 27,
+      "attributesSize": 1686444,
+      "geometries": 10,
+      "indexAttributes": 8,
+      "indexAttributesSize": 753522,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 21,
+      "programsSize": 108974,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 16,
+      "texturesSize": 93139763,
+      "uniformBuffers": 36,
+      "uniformBuffersSize": 51424,
+      "total": 95740127
+    }
+  },
+  {
+    "stage": "ocean",
+    "coverage": 1,
+    "grid": {
+      "vertices": 34151,
+      "length": 140,
+      "centreZ": -532,
+      "centreX": 3
+    },
+    "origin": {
+      "x": 3,
+      "z": -530
+    },
+    "resources": {
+      "attributes": 27,
+      "attributesSize": 1686444,
+      "geometries": 10,
+      "indexAttributes": 8,
+      "indexAttributesSize": 753522,
+      "indirectStorageAttributes": 0,
+      "indirectStorageAttributesSize": 0,
+      "programs": 21,
+      "programsSize": 108974,
+      "readbackBuffers": 0,
+      "readbackBuffersSize": 0,
+      "renderTargets": 2,
+      "storageAttributes": 0,
+      "storageAttributesSize": 0,
+      "textures": 16,
+      "texturesSize": 93139763,
+      "uniformBuffers": 36,
+      "uniformBuffersSize": 51424,
+      "total": 95740127
+    }
+  }
+]

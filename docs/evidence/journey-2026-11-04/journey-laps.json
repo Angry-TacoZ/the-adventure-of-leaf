@@ -1,0 +1,79 @@
+{
+  "stages": [
+    "headwaters",
+    "rapids",
+    "lake",
+    "valley",
+    "lowlands",
+    "estuary",
+    "ocean"
+  ],
+  "laps": 2,
+  "corrections": {
+    "left": 53,
+    "right": 54
+  },
+  "time": 1205.0333333348715,
+  "firstLapResources": {
+    "attributes": 356,
+    "attributesSize": 3802120,
+    "geometries": 123,
+    "indexAttributes": 32,
+    "indexAttributesSize": 1004166,
+    "indirectStorageAttributes": 0,
+    "indirectStorageAttributesSize": 0,
+    "programs": 48,
+    "programsSize": 232680,
+    "readbackBuffers": 0,
+    "readbackBuffersSize": 0,
+    "renderTargets": 2,
+    "storageAttributes": 0,
+    "storageAttributesSize": 0,
+    "textures": 28,
+    "texturesSize": 166750212,
+    "uniformBuffers": 340,
+    "uniformBuffersSize": 159424,
+    "total": 171948602
+  },
+  "finalResources": {
+    "attributes": 356,
+    "attributesSize": 3802120,
+    "geometries": 123,
+    "indexAttributes": 32,
+    "indexAttributesSize": 1004166,
+    "indirectStorageAttributes": 0,
+    "indirectStorageAttributesSize": 0,
+    "programs": 48,
+    "programsSize": 232680,
+    "readbackBuffers": 0,
+    "readbackBuffersSize": 0,
+    "renderTargets": 2,
+    "storageAttributes": 0,
+    "storageAttributesSize": 0,
+    "textures": 28,
+    "texturesSize": 166750212,
+    "uniformBuffers": 343,
+    "uniformBuffersSize": 160192,
+    "total": 171949370
+  },
+  "backend": "WebGL2",
+  "quality": 0.5,
+  "viewport": [
+    1280,
+    720
+  ],
+  "physics": {
+    "engine": "Rapier",
+    "particles": 51,
+    "constraints": 114,
+    "fragments": 1,
+    "tears": 0,
+    "stepMs": 0.2999999523162842,
+    "integrity": 0.9999999880961117,
+    "origin": {
+      "x": 3,
+      "z": -241
+    },
+    "rebases": 1395
+  }
+}

@@ -1,9 +1,27 @@
+import { createKeyboardControls } from "./keyboard-controls";
+import { createStormTimeline } from "./lightning";
+import { weatherAt } from "./weather";
+import { createWeatherView } from "./weather-view";
+import { onFinalPageHide } from "./lifecycle";
+import { createForest } from "./forest";
+import { createSky } from "./sky";
+import { createFishView } from "./fish-view";
+import { createGameUI } from "./game-ui";
+import { createGameAudio } from "./audio";
+import { shouldEndAdventure } from "./leaf-integrity";
+import { journeyAt, waterLevel, waterSlope, channelHalfWidth } from "./journey";
+import { createWaterGrid } from "./water-grid";
+import { createBankMeshes } from "./bank-view";
+import { bankHeight, createBedData } from "./bank-terrain";
+import { createUnderstory } from "./understory";
+import { createLeafView } from "./leaf-view";
+import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
 import {
   defaults,
   initial,
-  step,
+  updateWind,
   surface,
   current,
   flowField,
@@ -13,14 +31,23 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
-import {
-  sampleEnvironment,
-  FIXED_STEP,
-  type LeafPose,
-} from "./physics-boundary";
+import { FIXED_STEP } from "./physics-boundary";
+const revision = import.meta.env.VITE_BUILD_REVISION?.slice(0, 7);
+if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
+  document.querySelector("#hud span")!.textContent =
+    `Development preview · ${revision ?? "local"} · work in progress`;
+}
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
+const locationLabel = document.createElement("p"); locationLabel.id = "journey-location";
+diag.before(locationLabel);
+const verification = new URLSearchParams(location.search);
+const manual = import.meta.env.DEV && verification.get("testMode") === "manual";
+// Existing optical/control fixtures begin afloat. Normal gameplay always opens
+// in the canopy; manual verification can explicitly exercise it with &opening.
+const startInRiver = manual && !verification.has("opening");
 let renderer: THREE.WebGPURenderer;
+let gameplayReady = false;
 try {
   renderer = new THREE.WebGPURenderer({
     forceWebGL:
@@ -76,57 +103,60 @@ scene.fog = new THREE.Fog(0xa7c8ba, 25, 65);
 const camera = new THREE.PerspectiveCamera(
   48,
   innerWidth / innerHeight,
-  0.1,
+  0.015,
   120,
 );
 scene.add(new THREE.HemisphereLight(0xd9eff0, 0x455337, 2));
 const sun = new THREE.DirectionalLight(0xffefcc, 2);
 sun.position.set(-6, 14, 8);
 scene.add(sun);
+const sky = await createSky(sun, renderer);
+const weatherView = createWeatherView(); scene.add(weatherView.group);
+onFinalPageHide(() => weatherView.dispose());
+scene.add(sky.group);
+onFinalPageHide(() => sky.dispose());
 const p: Params = { ...defaults };
 const qualityControl = document.querySelector<HTMLSelectElement>("#quality")!;
 if (import.meta.env.DEV) qualityControl.closest("label")!.hidden = true;
 qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
+  if (gameplayReady) { ui.setQuality(p.quality); redraw = true; if (manual) render(0); }
 });
 let state = initial();
+let lastHealth = { tears: 0, integrity: 1, grind: 0 };
+const physics = await createRiverLeaf().catch((error) => {
+  document.querySelector("#error")!.textContent =
+    "Physics initialization failed. Reload the page to retry.";
+  throw error;
+});
+onFinalPageHide(() => physics.dispose());
 camera.position.set(
   state.x,
   state.y + p.cameraHeight,
   state.z + p.cameraDistance,
 );
-const keys = new Set<string>();
+const keyboard = createKeyboardControls();
+const keys = keyboard.keys;
 // Poly Haven Low Tide Rocks: diffuse color is sRGB; one tile spans approximately 2.2 m.
 const bedTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/low-tide-rocks-diffuse.jpg`,
 );
 bedTexture.colorSpace = THREE.SRGBColorSpace;
 bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
-const riverLength = river.start - river.end;
-const riverCenter = (river.start + river.end) / 2;
-bedTexture.repeat.set(8.3 / 2.2, riverLength / 2.2);
 bedTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(200, 200),
-  new THREE.MeshStandardMaterial({
-    color: 0x586f49,
-    roughness: 1,
-  }),
-);
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -0.42;
-ground.position.z = riverCenter;
-scene.add(ground);
+const bedData = createBedData(), bedGeometry = new THREE.BufferGeometry();
+bedGeometry.setAttribute("position", new THREE.BufferAttribute(bedData.positions, 3));
+bedGeometry.setAttribute("uv", new THREE.BufferAttribute(bedData.uvs, 2));
+bedGeometry.setIndex(new THREE.BufferAttribute(bedData.indices, 1));
+bedGeometry.computeVertexNormals();
 const bed = new THREE.Mesh(
-  new THREE.PlaneGeometry(8.3, riverLength),
+  bedGeometry,
   new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: bedTexture,
     roughness: 1,
   }),
 );
-bed.rotation.x = -Math.PI / 2;
-bed.position.set(0, -0.41, riverCenter);
 scene.add(bed);
 // The supplied pebble diffuse map uses world-scale UVs for each bank face.
 const shoreTexture = new THREE.TextureLoader().load(
@@ -135,24 +165,9 @@ const shoreTexture = new THREE.TextureLoader().load(
 shoreTexture.colorSpace = THREE.SRGBColorSpace;
 shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
 shoreTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
-const shoreGeometry = new THREE.BoxGeometry(5, 1.1, riverLength);
-const shorePositions = shoreGeometry.getAttribute("position");
-const shoreNormals = shoreGeometry.getAttribute("normal");
-const shoreUV = shoreGeometry.getAttribute("uv");
-for (let i = 0; i < shoreUV.count; i++) {
-  const up = Math.abs(shoreNormals.getY(i)) > 0.5,
-    side = Math.abs(shoreNormals.getX(i)) > 0.5;
-  shoreUV.setXY(
-    i,
-    (side ? shorePositions.getZ(i) : shorePositions.getX(i)) / 2.2,
-    (up ? shorePositions.getZ(i) : shorePositions.getY(i)) / 2.2,
-  );
-}
-const shoreMaterial = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  map: shoreTexture,
-  roughness: 1,
-});
+const banks = createBankMeshes(shoreTexture);
+for (const mesh of banks.meshes) scene.add(mesh);
+onFinalPageHide(() => banks.dispose());
 const rockTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
 );
@@ -165,16 +180,14 @@ const rockMaterial = new THREE.MeshStandardMaterial({
 });
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
-  const bank = new THREE.Mesh(shoreGeometry, shoreMaterial);
-  bank.position.set(side * 6.7, 0.05, riverCenter);
-  bank.rotation.z = side * 0.04;
-  scene.add(bank);
   for (let i = 0; i < 40; i++) {
     const rock = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.25 + (i % 4) * 0.13, 0),
       rockMaterial,
     );
-    rock.position.set(side * (4.45 + (i % 3) * 0.5), 0.35, -i * 2.8 + 6);
+    const x = side * (4.45 + (i % 3) * 0.5),
+      z = -i * 2.8 + 6;
+    rock.position.set(x, bankHeight(x, z) + (0.25 + (i % 4) * 0.13) * 0.25, z);
     rock.scale.set(1.3, 0.65, 1);
     scene.add(rock);
   }
@@ -185,7 +198,7 @@ for (const rock of obstacles) {
     new THREE.DodecahedronGeometry(rock.r, 1),
     rockMaterial,
   );
-  mesh.position.set(rock.x, 0.32, rock.z);
+  mesh.position.set(rock.x, waterLevel(rock.z) + 0.32, rock.z);
   mesh.scale.set(1, 0.75, 1);
   scene.add(mesh);
   const foam = new THREE.Mesh(
@@ -203,34 +216,51 @@ for (const rock of obstacles) {
   scene.add(foam);
   foams.push({ mesh: foam, rock });
 }
-const geometry = new THREE.PlaneGeometry(8.3, riverLength, 70, 480);
-geometry.translate(0, -riverCenter, 0);
+const waterGrid = createWaterGrid(), geometry = waterGrid.geometry;
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
+water.frustumCulled = false;
 scene.add(water);
-const leaf = new THREE.Group();
-const shape = new THREE.Shape();
-shape.moveTo(0, 0.95);
-shape.bezierCurveTo(0.75, 0.45, 0.65, -0.5, 0, -0.9);
-shape.bezierCurveTo(-0.65, -0.5, -0.75, 0.45, 0, 0.95);
-const blade = new THREE.Mesh(
-  new THREE.ShapeGeometry(shape, 16),
-  new THREE.MeshStandardMaterial({
-    color: 0xb5aa45,
-    roughness: 0.8,
-    side: THREE.DoubleSide,
-  }),
-);
-blade.rotation.x = -Math.PI / 2;
-leaf.add(blade);
-const vein = new THREE.Mesh(
-  new THREE.BoxGeometry(0.025, 0.02, 1.6),
-  new THREE.MeshStandardMaterial({ color: 0x6f7235 }),
-);
-vein.position.y = 0.01;
-leaf.add(vein);
-leaf.scale.setScalar(0.48);
+const leafView = createLeafView();
+await leafView.ready.catch(() => {
+  leafView.useFallback();
+  document.querySelector("#error")!.textContent =
+    "Leaf detail could not load. You can keep playing; reload to retry the texture.";
+});
+const leaf = leafView.group;
+onFinalPageHide(() => leafView.dispose());
 scene.add(leaf);
+const comparisonPlants =
+  (import.meta.env.DEV ||
+    import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") &&
+  new URLSearchParams(location.search).get("understory") === "compare";
+const understory = await createUnderstory(comparisonPlants);
+if (understory.diagnostics().failedSpecies.length)
+  document.querySelector("#error")!.textContent =
+    "Some shoreline plants could not load. You can keep playing; reload to retry.";
+scene.add(understory.group);
+onFinalPageHide(() => understory.dispose());
+const forest = createForest();
+scene.add(forest.group);
+onFinalPageHide(() => forest.dispose());
+if (!forest.opening) throw new Error("The headwaters tree has no overhanging leaf attachment");
+const fixtureZ = manual && verification.has("journeyZ") ? Number(verification.get("journeyZ")) : 0;
+const fixtureX = manual && verification.has("journeyX") ? Number(verification.get("journeyX")) : 0;
+const startZ = Number.isFinite(fixtureZ) ? Math.max(river.end + 1, Math.min(river.start, fixtureZ)) : 0;
+const startX = Number.isFinite(fixtureX) ? Math.max(-channelHalfWidth(startZ), Math.min(channelHalfWidth(startZ), fixtureX)) : 0;
+const spawn = startInRiver ? { x: startX, y: waterLevel(startZ) + 0.08, z: startZ } : forest.opening;
+let openingLanded = startInRiver;
+function placeLeafAtStart() {
+  state = initial();
+  physics.reset(spawn);
+  Object.assign(state, spawn);
+  openingLanded = startInRiver;
+  camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
+}
+placeLeafAtStart();
+const fishView = createFishView();
+scene.add(fishView.group);
+onFinalPageHide(() => fishView.dispose());
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -299,13 +329,29 @@ function updateWindStreaks() {
   streakGeometry.attributes.position.needsUpdate = true;
 }
 const clock = new THREE.Clock();
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) clock.start();
+});
 let accumulator = 0,
   lastRender = 0,
-  frameMs = 16,
-  manual =
-    import.meta.env.DEV &&
-    new URLSearchParams(location.search).get("testMode") === "manual";
+  frameMs = 16;
 let frames = 0;
+let redraw = true, previousTears = 0;
+const audio = createGameAudio();
+const stormTimeline = createStormTimeline();
+onFinalPageHide(() => { void audio.dispose(); });
+function resetGame() {
+  placeLeafAtStart(); accumulator = 0; previousTears = 0; keyboard.clear(); redraw = true;
+}
+const ui = createGameUI({
+  manual, quality: p.quality, volumes: audio.volumes,
+  onStart: () => { resetGame(); if (!manual) void audio.unlock(); },
+  onHome: resetGame,
+  onChange: () => { keyboard.clear(); redraw = true; },
+  onQuality: (value) => { p.quality = value; qualityControl.value = String(value); redraw = true; },
+  onVolume: (bus, value) => audio.setVolume(bus, value),
+  onSoundTest: () => { void audio.unlock().then(() => audio.play("click")); },
+});
 const profiling = new URLSearchParams(location.search).has("profile");
 const samples: {
   frame: number;
@@ -315,15 +361,15 @@ const samples: {
 }[] = [];
 const cameraTarget = new THREE.Vector3();
 let submersionTest: { offset: number; pitch: number; view: string } | undefined;
-function input() {
+function input(consumeButtons = false) {
   let x =
     (keys.has("d") || keys.has("arrowright") ? 1 : 0) -
     (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
   let z =
     (keys.has("s") || keys.has("arrowdown") ? 1 : 0) -
     (keys.has("w") || keys.has("arrowup") ? 1 : 0);
-  let raise = keys.has("e") ? 1 : 0,
-    lower = keys.has("q") ? 1 : 0;
+  const buttons = consumeButtons ? keyboard.step() : keyboard.read();
+  let raise = buttons.raise, lower = buttons.lower;
   const gp = navigator
     .getGamepads?.()
     ?.find((g) => g?.connected && g.mapping === "standard");
@@ -351,22 +397,45 @@ function input() {
 }
 function update(dt: number) {
   const laps = state.laps;
-  step(state, p, input(), dt);
-  if (state.laps !== laps)
+  const wasLanded = openingLanded;
+  updateWind(state, p, input(true), dt);
+  physics.step(state, p);
+  if (stormTimeline.step(state.time, weatherAt(state.z, state.time).strength).thunder) audio.play("thunder");
+  if (state.laps !== laps) {
+    openingLanded = startInRiver;
     camera.position.set(
       state.x,
       state.y + p.cameraHeight,
       state.z + p.cameraDistance,
     );
+  }
+  if (!openingLanded && state.y <= surface(state.x, state.z, state.time, p, state) + 0.1)
+    openingLanded = true;
+  if (!wasLanded && openingLanded) audio.play("splash");
+  const health = physics.diagnostics();
+  lastHealth = health;
+  if (health.tears > previousTears) audio.play("tear");
+  previousTears = health.tears;
+  if (shouldEndAdventure(health.integrity)) ui.lose();
 }
 function render(dt: number) {
   const started = performance.now();
+  waterGrid.layout(state.x, state.z);
+  const meanLevel = waterLevel(state.z);
   const attr = geometry.attributes.position as THREE.BufferAttribute;
   const skipSurface = benchmarkMode === "no-surface";
   if (!skipSurface) {
-    for (let i = 0; i < attr.count; i++)
-      attr.setZ(i, surface(attr.getX(i), -attr.getY(i), state.time, p, state));
+    for (let row = 0; row <= waterGrid.rows; row++) {
+      const strength = waterGrid.rapids[row], level = waterGrid.levels[row];
+      const end = (row + 1) * (waterGrid.columns + 1);
+      for (let i = row * (waterGrid.columns + 1); i < end; i++) {
+        const height = surface(attr.getX(i), -attr.getY(i), state.time, p, state);
+        attr.setZ(i, height - meanLevel);
+        waterGrid.foam[i] = strength > 0 ? strength * Math.max(0, height - level - 0.035) * 8 : 0;
+      }
+    }
     attr.needsUpdate = true;
+    geometry.attributes.aFoam.needsUpdate = true;
   }
   const deformed = performance.now();
   if (!skipSurface) geometry.computeVertexNormals();
@@ -374,17 +443,7 @@ function render(dt: number) {
   for (const { mesh, rock } of foams)
     mesh.position.y =
       surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
-  const environment = sampleEnvironment(state.x, state.z, state, p);
-  const pose: LeafPose = {
-    position: { x: state.x, y: state.y, z: state.z },
-    rotation: {
-      x: -Math.atan(environment.slopeZ) * p.alignment,
-      z: Math.atan(environment.slopeX) * p.alignment,
-      y: Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3,
-    },
-  };
-  leaf.position.set(pose.position.x, pose.position.y, pose.position.z);
-  leaf.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
+  leafView.update(physics.readFrame(), state);
   if (submersionTest) {
     leaf.position.y =
       surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
@@ -396,6 +455,7 @@ function render(dt: number) {
     state.z + p.cameraDistance,
   );
   camera.position.lerp(cameraTarget, 1 - Math.exp(-p.cameraSmoothing * dt));
+  if (!openingLanded) camera.position.y = cameraTarget.y;
   camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
   if (submersionTest?.view === "gameplay") {
     camera.position.copy(cameraTarget);
@@ -409,10 +469,16 @@ function render(dt: number) {
       state.z,
     );
   }
+  optics.setSurfaceFrame(meanLevel, state.z, waterSlope(state.z), camera.position, state.time);
   const pixelRatio = Math.min(devicePixelRatio, p.quality);
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
   optics.setQuality(p.quality);
+  understory.setQuality(p.quality);
+  forest.update(state.time, state.windX, state.windZ, state.intensity * p.windStrength, p.quality, state.z);
+  sky.update(state.time, state, state.windOffsetX, state.windOffsetZ, p.quality);
+  weatherView.update(state.time, state, p.quality);
+  fishView.update(physics.readFishFrame(), state.time);
   updateWindStreaks();
   const renderStart = performance.now();
   renderer.render(scene, camera);
@@ -426,7 +492,9 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
-  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
+  const journey = journeyAt(state.z);
+  locationLabel.textContent = `${journey.name} · ${Math.round(journey.progress * 100)}% to the Atlantic`;
+  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}\nleaf damage grind ${Math.round(lastHealth.grind * 100)}% · tears ${lastHealth.tears} · integrity ${Math.round(lastHealth.integrity * 100)}%`;
 }
 let lastInterval = 0;
 function loop(now: number) {
@@ -436,40 +504,60 @@ function loop(now: number) {
   frames++;
   frameMs = frameMs * 0.92 + lastInterval * 0.08;
   lastRender = now;
-  if (!manual) {
+  ui.pollGamepad(now);
+  audio.update(!manual && !ui.paused, current(state.x, state.z, state.time, p), Math.hypot(state.windX, state.windZ) * state.intensity * p.windStrength);
+  if (!manual && !ui.paused) {
     accumulator += dt;
-    while (accumulator >= FIXED_STEP) {
+    while (accumulator >= FIXED_STEP && !ui.paused) {
       update(FIXED_STEP);
       accumulator -= FIXED_STEP;
     }
-  }
-  render(manual ? 0 : dt);
+  } else if (ui.paused) accumulator = 0;
+  if ((!manual && !ui.paused) || redraw || frames === 1) { render(manual || ui.paused ? 0 : dt); redraw = false; }
 }
 window.addEventListener("keydown", (e) => {
-  keys.add(e.key.toLowerCase());
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
-    e.preventDefault();
-  if (e.key.toLowerCase() === "r") state = initial();
-  if (e.key.toLowerCase() === "f") {
+  if (e.key.toLowerCase() === "f" && !e.repeat) {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void app.requestFullscreen();
   }
+  // Modal controls retain native keyboard behavior; menu input cannot steer.
+  if (ui.paused) return;
+  keyboard.press(e.key.toLowerCase(), e.repeat);
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
+    e.preventDefault();
+  if (e.key.toLowerCase() === "r" && !e.repeat) {
+    ui.begin();
+    if (manual) render(0);
+  }
 });
-window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener("blur", () => keys.clear());
+window.addEventListener("keyup", (e) => keyboard.release(e.key.toLowerCase()));
+window.addEventListener("blur", () => keyboard.clear());
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  redraw = true;
+  if (manual) render(0);
 });
 window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
+    menu: ui.screen,
+    audio: audio.diagnostics(),
+    opening: { phase: openingLanded ? "afloat" : "falling", spawn },
+    physics: physics.diagnostics(),
+    understory: understory.diagnostics(),
+    forest: forest.diagnostics(),
+    sky: sky.diagnostics(),
+    weather: weatherView.diagnostics(),
+    fish: fishView.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,
     river,
+    journey: journeyAt(state.z),
+    waterGrid: waterGrid.diagnostics(),
     renderer: backend,
     rendererEngine: "WebGPURenderer",
     benchmark: benchmarkMode
@@ -484,6 +572,8 @@ window.render_game_to_text = () =>
       x: camera.position.x,
       y: camera.position.y,
       z: camera.position.z,
+      near: camera.near,
+      waterClearance: camera.position.y - surface(camera.position.x, camera.position.z, state.time, p, state),
     },
     frames,
     manual,
@@ -493,14 +583,35 @@ window.render_game_to_text = () =>
       surface(1, -4, state.time, p, state),
     ],
   });
+if (manual) {
+  const diagnosticMaterial = new THREE.MeshBasicNodeMaterial({ color: 0xff00ff, side: THREE.DoubleSide, toneMapped: false });
+  const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  onFinalPageHide(() => diagnosticMaterial.dispose());
+  Object.assign(window, { setVerificationLeafDiagnostic: (enabled: boolean) => {
+    leaf.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      if (enabled) { if (!originals.has(object)) originals.set(object, object.material); object.material = diagnosticMaterial; }
+      else { const original = originals.get(object); if (original) object.material = original; }
+    });
+    if (!enabled) originals.clear();
+  } });
+}
 if (manual)
   Object.assign(window, {
+    forceLeafTear: () => physics.forceTear(),
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
+    setVerificationWhitewater: (enabled: boolean) => { optics.foamWeight.value = enabled ? 1 : 0; },
     setVerificationWaterVisible: (visible: boolean) => {
       optics.mesh.visible = visible;
     },
+    setVerificationForestVisible: (visible: boolean) => {
+      forest.group.visible = visible;
+    },
+    setVerificationSkyVisible: (visible: boolean) => { sky.group.visible = visible; },
+    setVerificationFishVisible: (visible: boolean) => { fishView.group.visible = visible; },
+    setVerificationLeafVisible: (visible: boolean) => { leaf.visible = visible; },
     setLeafSubmersion: (offset: number, pitch = 0, view = "inspection") => {
       submersionTest = { offset, pitch, view };
     },
@@ -509,16 +620,23 @@ if (manual)
   window.setWaterOptics = (reflection: number, refraction: number) => {
     optics.reflectionWeight.value = reflection;
     optics.refractionWeight.value = refraction;
+    render(0);
   };
 if (manual)
   window.advanceTime = (ms: number) => {
-    const count = Math.ceil(ms / (1000 / 120));
-    for (let i = 0; i < count; i++) update(ms / 1000 / count);
+    if (ui.paused) { render(0); return; }
+    accumulator += ms / 1000;
+    while (accumulator + 1e-12 >= FIXED_STEP && !ui.paused) {
+      update(FIXED_STEP);
+      accumulator = Math.max(0, accumulator - FIXED_STEP);
+    }
+    if (ui.paused) accumulator = 0;
     render(ms / 1000);
   };
 if (import.meta.env.DEV) {
   void import("lil-gui").then(({ default: GUI }) => {
     const gui = new GUI({ title: "River tuning · development" });
+    gui.onChange(() => { if (manual) render(0); });
     const waterFolder = gui.addFolder("Water / current");
     waterFolder.add(p, "current", 0.2, 2.5, 0.01);
     waterFolder.add(p, "variation", 0, 0.8, 0.01);
@@ -572,4 +690,5 @@ if (import.meta.env.DEV) {
     gui.close();
   });
 }
+gameplayReady = true;
 requestAnimationFrame(loop);

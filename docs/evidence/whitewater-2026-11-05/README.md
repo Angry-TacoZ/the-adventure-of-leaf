@@ -1,0 +1,3 @@
+# Whitewater adaptation
+
+Adapted James’s supplied crest/FBM shader to the existing TSL water. Before/after captures use the same native1280×720 rapid fixture, neutral wind and0.5simulation seconds. Two noise octaves move downstream; original physical displacement and34151-vertex grid remain. Foam fades over near-surface objects using existing scene depth. Native and software tests retain turbulent leaf visibility checks and confirm zero foam change in calm headwaters. One depth/color capture remains. Screenshots establish a visible change, not final artistic acceptance or a performance guarantee.

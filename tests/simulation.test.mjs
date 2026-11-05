@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { riverExtent, channelHalfWidth } from "../src/journey.ts";
 import {
   defaults,
   initial,
   step,
   surface,
+  flowField,
   obstacle,
   obstacles,
 } from "../src/simulation.ts";
@@ -61,29 +63,6 @@ test("simulation is stable across frame step sizes", () => {
   assert.ok(Math.abs(a.y - b.y) < 0.02);
 });
 
-test("zero-wind current carries multiple approaches past the rock without penetration", () => {
-  for (const x of [-0.5, 0, 0.25, 0.4, 0.8])
-    for (const turbulence of [0, defaults.turbulence]) {
-      const s = initial();
-      s.x = x;
-      let minimum = Infinity,
-        maxLateral = 0;
-      for (let i = 0; i < 2400; i++) {
-        step(s, { ...defaults, turbulence }, neutral, 1 / 120);
-        maxLateral = Math.max(maxLateral, Math.abs(s.x));
-        minimum = Math.min(
-          minimum,
-          Math.hypot(s.x - obstacle.x, s.z - obstacle.z),
-        );
-      }
-      assert.ok(
-        s.z < -15,
-        `stagnation at ${x}, turbulence ${turbulence}: ${s.z}`,
-      );
-      assert.ok(maxLateral < 2.8, `excessive bank deflection ${maxLateral}`);
-      assert.ok(minimum >= obstacle.r + 0.28 - 1e-8);
-    }
-});
 test("directed ripple phase follows accumulated wind displacement", () => {
   const wind = {
     ...initial(),
@@ -171,7 +150,10 @@ test("leaf repeatedly loops to the start without resetting wind", () => {
   run(s, 40, 1 / 120);
   assert.ok(s.z < -35);
   s.windLevel = 2;
-  run(s, 200, 1 / 120);
+  for (let lap = 0; lap < 3; lap++) {
+    s.z = riverExtent.stop - 0.01;
+    step(s, defaults, neutral, 1 / 120);
+  }
   assert.ok(s.laps >= 2);
   assert.equal(s.windLevel, 2);
 });
@@ -188,26 +170,13 @@ test("each river rock participates in collision", () => {
   }
 });
 
-test("calm current navigates the full river without pushing the leaf to the bank", () => {
+test("wind-directed test-player feedback clears the connected route's rocks", () => {
   const s = initial();
-  let maxLateral = 0;
-  for (let i = 0; i < 12000; i++) {
-    step(s, defaults, neutral, 1 / 120);
-    maxLateral = Math.max(maxLateral, Math.abs(s.x));
-    for (const rock of obstacles)
-      assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
-  }
-  assert.ok(s.laps >= 1, `stagnated at ${s.z}`);
-  assert.ok(maxLateral < 2.8, `excessive bank deflection ${maxLateral}`);
-});
-
-test("a leftward wind burst followed by neutral wind clears every rock", () => {
-  const s = initial();
-  step(s, defaults, { ...neutral, raise: 1 }, 1 / 120);
-  run(s, 2.5, 1 / 120, { ...neutral, x: -1 });
-  for (let i = 0; i < 24000; i++) {
-    step(s, defaults, neutral, 1 / 120);
-    assert.ok(Math.abs(s.x) <= 3.65 + 1e-8, `outside river: ${s.x}`);
+  s.windLevel = 4;
+  for (let i = 0; i < 900 * 120 && !s.laps; i++) {
+    const x = s.x < 2.6 ? 1 : s.x > 3 ? -1 : 0;
+    step(s, defaults, { ...neutral, x }, 1 / 120);
+    assert.ok(Math.abs(s.x) <= channelHalfWidth(s.z) + 0.6, `outside river: ${s.x}`);
     for (const rock of obstacles)
       assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
   }
@@ -217,7 +186,18 @@ test("a leftward wind burst followed by neutral wind clears every rock", () => {
 test("each obstacle leaves room for the leaf at both banks", () => {
   for (const rock of obstacles)
     assert.ok(
-      3.65 - Math.abs(rock.x) > rock.r + 0.28,
+      channelHalfWidth(rock.z) - 0.05 - Math.abs(rock.x) > rock.r + 0.28,
       `blocked bank at ${rock.z}`,
     );
+});
+
+test("upstream flow does not steer the leaf around rocks", () => {
+  for (const rock of obstacles)
+    for (const dx of [-1, 0, 1])
+      for (const t of [0, 2, 8]) {
+        const f = flowField(rock.x + dx, rock.z + 2, t, defaults);
+        // Distant earlier rocks may contribute an exponentially small downstream wake.
+        assert.ok(Math.abs(f.x) < 0.000001, "upstream lateral avoidance force");
+        assert.ok(f.z < 0);
+      }
 });

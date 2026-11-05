@@ -88,3 +88,74 @@ The software timings are highly variable: for example, a 720p main mean exceeded
 The water pass previously triggered four depth framebuffer copies and one color copy per frame. Sharing the depth texture reduces this to one depth and one color copy, verified on both backends without removing the depth rejection or optics. At the tested camera and leaf poses the six before/after images had no pixels differing by more than 3/255 in any color channel. Reflection, depth and color ablations were individually recorded; their noisy frame intervals do not support assigning the software slowdown to one effect. The remaining software regression warrants future profiling.
 
 A separate RTX 4090 WebGL2 `EXT_disjoint_timer_query_webgl2` baseline measured mean/p95 GPU elapsed times of 0.709/1.193 ms at 720p and 0.769/1.373 ms at 1080p. Native WebGPU renderer timestamp samples after the change measured 0.048/0.131 ms and 0.050/0.131 ms respectively, quantized in 0.065536 ms increments with zeros. These APIs cover different scopes and cannot establish a relative GPU speedup. No performance improvement is claimed from these non-equivalent GPU timers. Full samples, per-pass ablations, and test conditions are in evidence/performance-final-pass. The benchmark's reflector-resolution override uses a Three.js internal API and may require maintenance after a Three.js upgrade.
+
+
+## Forest draw ablation — November 4, 2026
+
+Measured forest source: 3ba95c3. These samples predate the later physical opening, sky and fish increment; do not present them as a matched benchmark for that newer scene.
+
+Reproduce with a local dev server and `node scripts/profile-forest.mjs`; repeat with `LEAF_FOREST_QUALITY=0.5`. The script uses a fixed manual pose, 1280×720 CSS viewport, DPR 1, actual RAF-driven draws for four seconds per case and unchanged water reflection/refraction. The hidden case suppresses only forest drawing; geometry generation and owner update remain. Physics time stays fixed, so this is not a full gameplay benchmark. CPU: i9-13900KF, Windows. Native Chrome 156 and bundled Chromium 156/SwiftShader; a separate native adapter probe on this host reported NVIDIA Lovelace, non-fallback. High draws 35 active trees/317,520 leaf triangles; low draws 18/81,648, sharing existing buffers.
+
+| Backend | Quality | Forest | Samples | Mean RAF interval ms | Mean CPU deformation/submission ms | Mean renderer submission ms |
+|---|---|---|---:|---:|---:|---:|
+| WebGPU (Chrome native) | High | Hidden | 241 | 16.68 | 10.50 | 1.02 |
+| WebGPU (Chrome native) | High | Visible | 241 | 16.68 | 10.45 | 1.12 |
+| WebGL2 (SwiftShader) | High | Hidden | 36 | 121.90 | 10.17 | 1.22 |
+| WebGL2 (SwiftShader) | High | Visible | 34 | 135.35 | 10.48 | 1.29 |
+| WebGPU (Chrome native) | Low | Hidden | 240 | 16.75 | 10.63 | 1.03 |
+| WebGPU (Chrome native) | Low | Visible | 241 | 16.68 | 10.57 | 1.14 |
+| WebGL2 (SwiftShader) | Low | Hidden | 49 | 84.37 | 10.27 | 1.08 |
+| WebGL2 (SwiftShader) | Low | Visible | 44 | 95.34 | 10.78 | 1.29 |
+
+Native intervals are display-paced around 60 Hz, so they establish neither uncapped GPU cost nor a speedup. CPU render submission is asynchronous and is not GPU elapsed time. The short SwiftShader windows have large tails (up to ~733 ms p95); the lower-quality run improves its sampled intervals but still renders slowly. Software degradation already exists with the forest hidden; the forest adds work and no general fallback-performance fix is claimed. Other system/GPU activity and measurement order were not controlled. Low quality reduces tree count, leaf index detail, drawing-buffer resolution and reflection capture size without reallocating tree geometry. Renderer resource counters increased about 2.3 MiB at high quality; this is bookkeeping, not driver VRAM. Raw samples/conditions: evidence/forest-2026-11-04/profile-{high,low}.json.
+
+## Connected-route matched hardware measurement — November 4, 2026
+
+Baseline is pinned 3a9473f; current working-source blob hashes and raw samples are in evidence/journey-2026-11-04/profile.json. Intel i9-13900KF, RTX 4090, Chrome 156.0.8078.47. Fixed headwaters pose/time, DPR1, quality1, identical reflection settings; 80 serial frames after at least 60 frames and one second warmup. GPU queue fence / gl.finish completion includes CPU work and GPU completion, rather than display-paced FPS or isolated GPU time. No other test browsers were running; other machine activity remains uncontrolled.
+
+| Backend | Viewport | Pipeline | Completion ms | CPU deformation ms | CPU normals ms |
+|---|---|---|---:|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 14.93 | 3.94 | 5.41 |
+| WebGPU | 1280×720 | journey-headwaters | 16.22 | 4.57 | 5.29 |
+| WebGPU | 1920×1080 | baseline-headwaters | 16.34 | 4.34 | 5.95 |
+| WebGPU | 1920×1080 | journey-headwaters | 16.17 | 4.69 | 5.41 |
+| WebGL2 | 1280×720 | baseline-headwaters | 9.19 | 4.40 | 3.81 |
+| WebGL2 | 1280×720 | journey-headwaters | 10.43 | 5.27 | 4.07 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 9.68 | 4.95 | 3.73 |
+| WebGL2 | 1920×1080 | journey-headwaters | 9.25 | 4.65 | 3.67 |
+
+Small differences and run-order variability do not support a WebGPU speedup claim. CPU surface deformation and normals remain material costs; moving those evaluations to the GPU is a justified future optimization, requiring preservation of the shared physics surface. This measures hardware paths, not SwiftShader. Renderer counters do not establish driver VRAM stability.
+
+## Advancing-clock weather comparison — November 5, 2026
+
+Pinned baseline3a9473f versus95884ab gameplay source (documentation-only head1d336d4). 13th Gen Intel(R) Core(TM) i9-13900KF, RTX4090, Chrome156.0.8078.47. The physical headwaters pose stays fixed while the render clock advances1/60s per frame, including repeated Eanpa cube refreshes. Quality1/DPR1, identical reflection settings,80 serial samples after60-frame/one-second warmup. These are CPU+GPU queue-fenced completion times, not displayFPS or isolatedGPU time. Other local test browsers had finished; other machine activity remains uncontrolled.
+
+| Backend | Viewport | Pipeline | Mean ms | p95 ms |
+|---|---|---|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 19.23 | 25.60 |
+| WebGPU | 1280×720 | journey-headwaters | 21.38 | 30.80 |
+| WebGPU | 1920×1080 | baseline-headwaters | 21.40 | 30.10 |
+| WebGPU | 1920×1080 | journey-headwaters | 20.15 | 31.80 |
+| WebGL2 | 1280×720 | baseline-headwaters | 11.54 | 17.00 |
+| WebGL2 | 1280×720 | journey-headwaters | 14.79 | 21.40 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 9.60 | 11.90 |
+| WebGL2 | 1920×1080 | journey-headwaters | 15.65 | 24.60 |
+
+Hardware WebGL2 costs more at both sampled resolutions; native WebGPU is mixed with broad tails. No performance improvement is established. Render clock sampling does not model physical journey integration, cold startup, or storm-preset worst cases. The80-frame window contains only a few cloud refreshes, so longer real-time measurements remain necessary. Cloud softness/grain and Linux software timing remain unresolved. Raw samples, conditions and source hashes: evidence/weather-2026-11-05/profile.json.
+
+## Sky correction/filter comparison — November 5, 2026
+
+Pinned16d0c4a versus the corrected/filtered working source; exact measured source hashes are preserved in evidence/sky-correction-2026-11-05/profile.json and matched the source at recording. HardwareChrome156/RTX4090/13900KF, quality1/DPR1. Fixed physical headwaters pose, advancing renderclock,80serial queue-fenced frames after60frames/one-second warmup. This includes CPU+GPUcompletion and cloudrefreshes; no physicsintegration or displayFPS. No other local test browsers ran during measurement; other machineactivity was uncontrolled.
+
+| Backend | Viewport | Pipeline | Mean ms | p95 ms |
+|---|---|---|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 19.50 | 25.90 |
+| WebGPU | 1280×720 | journey-headwaters | 25.01 | 30.50 |
+| WebGPU | 1920×1080 | baseline-headwaters | 25.01 | 32.00 |
+| WebGPU | 1920×1080 | journey-headwaters | 23.63 | 37.00 |
+| WebGL2 | 1280×720 | baseline-headwaters | 19.89 | 23.40 |
+| WebGL2 | 1280×720 | journey-headwaters | 15.31 | 19.70 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 15.95 | 21.90 |
+| WebGL2 | 1920×1080 | journey-headwaters | 19.31 | 23.00 |
+
+Results are mixed with substantial order/tail variation. Filtering adds texture samples; these data establish neither a speedup nor a general cost bound. Low retains smaller buffers and slower refreshes. Native and software image/behavior checks pass; production pacing, cold-start and multi-hour behavior remain separate evidence.

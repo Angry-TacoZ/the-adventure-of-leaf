@@ -1,3 +1,33 @@
 *{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:#102e32;color:#eff7df;font-family:system-ui,sans-serif}canvas{display:block;width:100%;height:100%}#hud{position:absolute;z-index:2;top:20px;left:24px;max-width:510px;text-shadow:0 1px 8px #09292c;pointer-events:none}#hud strong{letter-spacing:.18em;font-size:13px}#hud span{display:block;font-size:12px;opacity:.8;margin-top:4px}#hud p{font-size:12px;margin:7px 0;opacity:.9}#diagnostics{font:11px/1.5 monospace;display:block;margin-top:12px;white-space:pre-line;color:#d4e9d2}#error{position:absolute;top:40%;left:10%;font-size:18px} @media(max-width:700px){#hud{top:10px;left:12px}#hud p{font-size:10px}#diagnostics{font-size:10px}}
 
 #quality-control{position:absolute;z-index:2;bottom:16px;right:16px;font-size:12px;text-shadow:0 1px 8px #09292c}#quality{margin-left:6px}
+#hud #journey-location{font-size:13px;color:#f3dda0;margin-top:12px}
+/* Live-forest menus: one quiet text surface with a birch-gold primary action. */
+body.menu-open #hud,body.menu-open #quality-control{visibility:hidden}
+.game-menu{position:fixed;left:clamp(16px,7vw,120px);right:auto;top:50%;bottom:auto;transform:translateY(-50%);margin:0;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 48px);padding:30px 32px;border:1px solid #9da48066;border-radius:3px;background:#172c27f2;color:#f2f3df;box-shadow:0 18px 70px #07171344;font:15px/1.5 system-ui,sans-serif;overflow:auto}
+.game-menu[open]{animation:menu-appear .18s ease-out}
+.game-menu::backdrop{background:#07171330}
+.game-menu .menu-eyebrow{font:10px/1.4 system-ui,sans-serif;letter-spacing:.2em;color:#d6bd65;margin:0 0 18px}
+.game-menu h1{font:normal clamp(30px,4vw,44px)/1.05 Georgia,serif;margin:0 0 22px;letter-spacing:-.025em}
+.game-menu .menu-intro{color:#d5dfce;margin:0 0 26px}
+.game-menu button{display:block;width:100%;padding:12px 4px;border:0;border-bottom:1px solid #edf3dd24;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer;transition:color .15s,background .15s,padding .15s}
+.game-menu button:hover,.game-menu button:focus-visible{background:#ecf0d912;color:#f3d776;padding-left:10px;outline:2px solid #d3bd6955;outline-offset:1px}
+.game-menu button.primary{background:#d8be62;border:0;color:#182b23;padding:13px 16px;margin:10px 0 12px;font-weight:650}
+.game-menu button.primary:hover,.game-menu button.primary:focus-visible{background:#ebd48a;color:#12251c}
+.game-menu nav{margin:8px 0 20px}
+.game-menu .build-note,.game-menu .menu-help{font-size:11px;color:#a9b7a7;margin:22px 0 0}
+.game-menu .menu-help{font-size:10px;margin-top:14px}
+.setting-row,.volume-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 0}
+.setting-row select{max-width:150px;font:inherit;background:#243d32;color:#f2f3df;border:1px solid #7d957d;padding:8px}
+.volume-row input{width:54%;accent-color:#d8be62}
+.game-menu fieldset{border:0;border-top:1px solid #edf3dd24;margin:18px 0;padding:14px 0 0}
+.game-menu legend{font-size:12px;color:#cbd5c2;padding:0 10px 0 0}
+.guide-controls dt{font-size:12px;color:#d8be62;margin-top:12px}.guide-controls dd{margin:2px 0;font-size:14px}
+.credit-links{padding-left:18px;font-size:13px}.credit-links li{margin-bottom:10px}.game-menu a{color:#e0ca82}
+.pause-button{position:absolute;z-index:2;top:20px;right:24px;background:#18332bc9;color:#f2f3df;border:1px solid #d3dfc766;padding:9px 17px;border-radius:2px;cursor:pointer}
+.pause-button[hidden]{display:none}
+@keyframes menu-appear{from{opacity:0}to{opacity:1}}
+@media(max-width:640px){.game-menu{left:16px;top:16px;transform:none;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:24px}.pause-button{top:10px;right:12px}.game-menu h1{font-size:34px}}
+@media(prefers-reduced-motion:reduce){.game-menu[open]{animation:none}.game-menu button{transition:none}}
+
+.game-menu h1.home-title{color:#d6bd65}

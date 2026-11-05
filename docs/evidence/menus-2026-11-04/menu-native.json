@@ -1,0 +1,62 @@
+{
+  "backend": "WebGPU",
+  "damage": [
+    {
+      "engine": "Rapier",
+      "particles": 55,
+      "constraints": 117,
+      "fragments": 2,
+      "tears": 1,
+      "stepMs": 3,
+      "integrity": 0.5211805311034546
+    },
+    {
+      "engine": "Rapier",
+      "particles": 58,
+      "constraints": 119,
+      "fragments": 3,
+      "tears": 2,
+      "stepMs": 2.5,
+      "integrity": 0.4788195270765142
+    },
+    {
+      "engine": "Rapier",
+      "particles": 62,
+      "constraints": 122,
+      "fragments": 4,
+      "tears": 3,
+      "stepMs": 1,
+      "integrity": 0.32964470656681544
+    },
+    {
+      "engine": "Rapier",
+      "particles": 65,
+      "constraints": 124,
+      "fragments": 5,
+      "tears": 4,
+      "stepMs": 1,
+      "integrity": 0.2925463933759972
+    },
+    {
+      "engine": "Rapier",
+      "particles": 68,
+      "constraints": 126,
+      "fragments": 6,
+      "tears": 5,
+      "stepMs": 1,
+      "integrity": 0.22863413772745741
+    }
+  ],
+  "pauseTime": 0.24166666666666664,
+  "reset": {
+    "engine": "Rapier",
+    "particles": 51,
+    "constraints": 114,
+    "fragments": 1,
+    "tears": 0,
+    "stepMs": 1,
+    "integrity": 1
+  },
+  "audio": "locked",
+  "errors": []
+}
