@@ -108,6 +108,28 @@ try {
     }
     requestAnimationFrame(observe);
   });
+  // Player-directed wind now clears the hazard; no upstream obstacle avoidance field.
+  await page.evaluate(() => {
+    window.mockPad.axes[0] = -1;
+    window.mockPad.buttons[7].value = 1;
+  });
+  await page.waitForFunction(
+    () => JSON.parse(window.render_game_to_text()).windLevel === 1,
+  );
+  await page.evaluate(() => {
+    window.mockPad.buttons[7].value = 0;
+  });
+  await page.waitForFunction(
+    () => !JSON.parse(window.render_game_to_text()).raisePressed,
+  );
+  await page.waitForFunction(
+    () => JSON.parse(window.render_game_to_text()).x < -1.7,
+    {},
+    { timeout: 60000 },
+  );
+  await page.evaluate(() => {
+    window.mockPad.axes[0] = 0;
+  });
   // Observe the real requestAnimationFrame loop, without calling advanceTime.
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).z < -13,
@@ -119,7 +141,7 @@ try {
   assert.ok(passed.time > start.time + 1);
   assert.ok(passed.z < start.z - 3);
   assert.ok(passed.time > 8);
-  assert.ok(Math.abs(passed.x) < 2.5, "natural current drifted too near bank");
+  assert.ok(Math.abs(passed.x) < 4.3, "leaf passed through riverbank");
   assert.equal(passed.manual, false);
   assert.ok(passed.waterOptics.captures > start.waterOptics.captures);
   assert.equal(
@@ -236,7 +258,7 @@ try {
     ),
   );
   console.log(
-    "Real animation frames: natural obstacle passage, camera follow, controller triggers/direction/disconnect, keyboard and neutral release passed",
+    "Real animation frames: wind-directed obstacle passage, camera follow, controller triggers/direction/disconnect, keyboard and neutral release passed",
   );
 } finally {
   await browser.close();

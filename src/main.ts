@@ -1,9 +1,11 @@
+import { createLeafView } from "./leaf-view";
+import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
 import {
   defaults,
   initial,
-  step,
+  updateWind,
   surface,
   current,
   flowField,
@@ -13,11 +15,12 @@ import {
   type Params,
 } from "./simulation";
 import "./style.css";
-import {
-  sampleEnvironment,
-  FIXED_STEP,
-  type LeafPose,
-} from "./physics-boundary";
+import { FIXED_STEP } from "./physics-boundary";
+const revision = import.meta.env.VITE_BUILD_REVISION?.slice(0, 7);
+if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
+  document.querySelector("#hud span")!.textContent =
+    `Development preview · ${revision ?? "local"} · work in progress`;
+}
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
 let renderer: THREE.WebGPURenderer;
@@ -90,6 +93,13 @@ qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
 });
 let state = initial();
+let lastHealth = { tears: 0, grind: 0 };
+const physics = await createRiverLeaf().catch((error) => {
+  document.querySelector("#error")!.textContent =
+    "Physics initialization failed. Reload the page to retry.";
+  throw error;
+});
+window.addEventListener("pagehide", () => physics.dispose(), { once: true });
 camera.position.set(
   state.x,
   state.y + p.cameraHeight,
@@ -208,28 +218,9 @@ geometry.translate(0, -riverCenter, 0);
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
-const leaf = new THREE.Group();
-const shape = new THREE.Shape();
-shape.moveTo(0, 0.95);
-shape.bezierCurveTo(0.75, 0.45, 0.65, -0.5, 0, -0.9);
-shape.bezierCurveTo(-0.65, -0.5, -0.75, 0.45, 0, 0.95);
-const blade = new THREE.Mesh(
-  new THREE.ShapeGeometry(shape, 16),
-  new THREE.MeshStandardMaterial({
-    color: 0xb5aa45,
-    roughness: 0.8,
-    side: THREE.DoubleSide,
-  }),
-);
-blade.rotation.x = -Math.PI / 2;
-leaf.add(blade);
-const vein = new THREE.Mesh(
-  new THREE.BoxGeometry(0.025, 0.02, 1.6),
-  new THREE.MeshStandardMaterial({ color: 0x6f7235 }),
-);
-vein.position.y = 0.01;
-leaf.add(vein);
-leaf.scale.setScalar(0.48);
+const leafView = createLeafView();
+const leaf = leafView.group;
+window.addEventListener("pagehide", () => leafView.dispose(), { once: true });
 scene.add(leaf);
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
@@ -351,7 +342,9 @@ function input() {
 }
 function update(dt: number) {
   const laps = state.laps;
-  step(state, p, input(), dt);
+  updateWind(state, p, input(), dt);
+  physics.step(state, p);
+  lastHealth = physics.diagnostics();
   if (state.laps !== laps)
     camera.position.set(
       state.x,
@@ -374,17 +367,7 @@ function render(dt: number) {
   for (const { mesh, rock } of foams)
     mesh.position.y =
       surface(rock.x + rock.r, rock.z, state.time, p, state) + 0.035;
-  const environment = sampleEnvironment(state.x, state.z, state, p);
-  const pose: LeafPose = {
-    position: { x: state.x, y: state.y, z: state.z },
-    rotation: {
-      x: -Math.atan(environment.slopeZ) * p.alignment,
-      z: Math.atan(environment.slopeX) * p.alignment,
-      y: Math.sin(state.time * 0.6) * 0.18 + state.vx * 0.3,
-    },
-  };
-  leaf.position.set(pose.position.x, pose.position.y, pose.position.z);
-  leaf.rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z);
+  leafView.update(physics.readFrame(), state);
   if (submersionTest) {
     leaf.position.y =
       surface(state.x, state.z, state.time, p, state) + submersionTest.offset;
@@ -426,7 +409,7 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
-  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
+  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}\nleaf damage grind ${Math.round(lastHealth.grind * 100)}% · tears ${lastHealth.tears}`;
 }
 let lastInterval = 0;
 function loop(now: number) {
@@ -449,7 +432,10 @@ window.addEventListener("keydown", (e) => {
   keys.add(e.key.toLowerCase());
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
     e.preventDefault();
-  if (e.key.toLowerCase() === "r") state = initial();
+  if (e.key.toLowerCase() === "r") {
+    state = initial();
+    physics.reset();
+  }
   if (e.key.toLowerCase() === "f") {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void app.requestFullscreen();
@@ -466,6 +452,7 @@ window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
+    physics: physics.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,
@@ -495,6 +482,7 @@ window.render_game_to_text = () =>
   });
 if (manual)
   Object.assign(window, {
+    forceLeafTear: () => physics.forceTear(),
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
@@ -512,8 +500,11 @@ if (manual)
   };
 if (manual)
   window.advanceTime = (ms: number) => {
-    const count = Math.ceil(ms / (1000 / 120));
-    for (let i = 0; i < count; i++) update(ms / 1000 / count);
+    accumulator += ms / 1000;
+    while (accumulator + 1e-12 >= FIXED_STEP) {
+      update(FIXED_STEP);
+      accumulator = Math.max(0, accumulator - FIXED_STEP);
+    }
     render(ms / 1000);
   };
 if (import.meta.env.DEV) {
