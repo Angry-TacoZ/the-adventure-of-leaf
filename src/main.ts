@@ -1,3 +1,4 @@
+import { createWeatherView } from "./weather-view";
 import { onFinalPageHide } from "./lifecycle";
 import { createForest } from "./forest";
 import { createSky } from "./sky";
@@ -107,6 +108,8 @@ const sun = new THREE.DirectionalLight(0xffefcc, 2);
 sun.position.set(-6, 14, 8);
 scene.add(sun);
 const sky = await createSky(sun);
+const weatherView = createWeatherView(); scene.add(weatherView.group);
+onFinalPageHide(() => weatherView.dispose());
 scene.add(sky.group);
 onFinalPageHide(() => sky.dispose());
 const p: Params = { ...defaults };
@@ -466,6 +469,7 @@ function render(dt: number) {
   understory.setQuality(p.quality);
   forest.update(state.time, state.windX, state.windZ, state.intensity * p.windStrength, p.quality, state.z);
   sky.update(state.time, state, state.windOffsetX, state.windOffsetZ, p.quality);
+  weatherView.update(state.time, state, p.quality);
   fishView.update(physics.readFishFrame(), state.time);
   updateWindStreaks();
   const renderStart = performance.now();
@@ -538,6 +542,7 @@ window.render_game_to_text = () =>
     understory: understory.diagnostics(),
     forest: forest.diagnostics(),
     sky: sky.diagnostics(),
+    weather: weatherView.diagnostics(),
     fish: fishView.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,

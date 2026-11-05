@@ -1,3 +1,4 @@
+import { weatherAt } from "./weather";
 import * as THREE from "three/webgpu";
 import * as TSL from "three/tsl";
 import { createSky as createLightweightSky } from "./sky-lightweight";
@@ -5,6 +6,8 @@ import { createSky as createLightweightSky } from "./sky-lightweight";
 interface EarthSky {
   domes: THREE.Mesh[];
   setClouds(name: string): void;
+  transitionClouds(name: string, duration: number, overrides?: Record<string, unknown>): void;
+  setColors(colors: { cloud: number[]; sky: number[] }): void;
   update(time: number, camera: THREE.Camera): void;
   dispose(): void;
 }
@@ -42,12 +45,24 @@ export async function createSky(light: THREE.DirectionalLight) {
     const material = dome.material as THREE.MeshBasicNodeMaterial;
     if (material.colorNode) material.colorNode = TSL.toneMapping(THREE.ACESFilmicToneMapping, 1, material.colorNode);
   }
-  let quality = 1;
+  let quality = 1, storm = false;
   const viewerCamera = new THREE.PerspectiveCamera();
   return {
     group,
     update(time: number, viewer: { y: number; z: number }, offsetX: number, offsetZ: number, nextQuality: number) {
       quality = nextQuality;
+      const weather = weatherAt(viewer.z, time);
+      const nextStorm = weather.strength > .1;
+      if (nextStorm !== storm) { storm = nextStorm; earth.transitionClouds("cumulus", 8, storm ? {
+        // Earth storm density subset from pinned Eanpa weather_system.js.
+        largeT: .12, largeA: 4, finalMul: .34, start: 550, height: 950,
+        wispOn: .52, wispScale: .00096, wispThreshold: .36,
+        wispStrength: .88, wispOpacity: 1.05, wispFilament: .32,
+        wispStretch: [.4, .2, 2.18], wispTint: [.53, .60, .70],
+      } : {}); }
+      const shade = 1 - weather.strength * .65;
+      earth.setColors({ cloud: [shade, shade, shade], sky: [shade, shade, shade] });
+      light.intensity = 5 * (1 - .7 * weather.strength);
       earthScene.visible = quality >= .75; lightweight.group.visible = quality < .75;
       lightweight.update(time, viewer, offsetX, offsetZ, quality);
       viewerCamera.position.set(0, viewer.y, viewer.z);
