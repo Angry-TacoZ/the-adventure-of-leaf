@@ -93,6 +93,7 @@ qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
 });
 let state = initial();
+let lastHealth = { tears: 0, grind: 0 };
 const physics = await createRiverLeaf().catch((error) => {
   document.querySelector("#error")!.textContent =
     "Physics initialization failed. Reload the page to retry.";
@@ -343,6 +344,7 @@ function update(dt: number) {
   const laps = state.laps;
   updateWind(state, p, input(), dt);
   physics.step(state, p);
+  lastHealth = physics.diagnostics();
   if (state.laps !== laps)
     camera.position.set(
       state.x,
@@ -407,7 +409,7 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
-  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}`;
+  diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}\nleaf damage grind ${Math.round(lastHealth.grind * 100)}% · tears ${lastHealth.tears}`;
 }
 let lastInterval = 0;
 function loop(now: number) {
