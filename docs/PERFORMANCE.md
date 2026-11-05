@@ -108,3 +108,20 @@ Reproduce with a local dev server and `node scripts/profile-forest.mjs`; repeat 
 | WebGL2 (SwiftShader) | Low | Visible | 44 | 95.34 | 10.78 | 1.29 |
 
 Native intervals are display-paced around 60 Hz, so they establish neither uncapped GPU cost nor a speedup. CPU render submission is asynchronous and is not GPU elapsed time. The short SwiftShader windows have large tails (up to ~733 ms p95); the lower-quality run improves its sampled intervals but still renders slowly. Software degradation already exists with the forest hidden; the forest adds work and no general fallback-performance fix is claimed. Other system/GPU activity and measurement order were not controlled. Low quality reduces tree count, leaf index detail, drawing-buffer resolution and reflection capture size without reallocating tree geometry. Renderer resource counters increased about 2.3 MiB at high quality; this is bookkeeping, not driver VRAM. Raw samples/conditions: evidence/forest-2026-11-04/profile-{high,low}.json.
+
+## Connected-route matched hardware measurement — November 4, 2026
+
+Baseline is pinned 3a9473f; current working-source blob hashes and raw samples are in evidence/journey-2026-11-04/profile.json. Intel i9-13900KF, RTX 4090, Chrome 156.0.8078.47. Fixed headwaters pose/time, DPR1, quality1, identical reflection settings; 80 serial frames after at least 60 frames and one second warmup. GPU queue fence / gl.finish completion includes CPU work and GPU completion, rather than display-paced FPS or isolated GPU time. No other test browsers were running; other machine activity remains uncontrolled.
+
+| Backend | Viewport | Pipeline | Completion ms | CPU deformation ms | CPU normals ms |
+|---|---|---|---:|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 14.93 | 3.94 | 5.41 |
+| WebGPU | 1280×720 | journey-headwaters | 16.22 | 4.57 | 5.29 |
+| WebGPU | 1920×1080 | baseline-headwaters | 16.34 | 4.34 | 5.95 |
+| WebGPU | 1920×1080 | journey-headwaters | 16.17 | 4.69 | 5.41 |
+| WebGL2 | 1280×720 | baseline-headwaters | 9.19 | 4.40 | 3.81 |
+| WebGL2 | 1280×720 | journey-headwaters | 10.43 | 5.27 | 4.07 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 9.68 | 4.95 | 3.73 |
+| WebGL2 | 1920×1080 | journey-headwaters | 9.25 | 4.65 | 3.67 |
+
+Small differences and run-order variability do not support a WebGPU speedup claim. CPU surface deformation and normals remain material costs; moving those evaluations to the GPU is a justified future optimization, requiring preservation of the shared physics surface. This measures hardware paths, not SwiftShader. Renderer counters do not establish driver VRAM stability.

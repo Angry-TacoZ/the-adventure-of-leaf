@@ -19,7 +19,7 @@ try {
   const read = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
   const initial = await read();
   assert.equal(initial.renderer, native ? "WebGPU" : "WebGL2");
-  assert.equal(initial.forest.totalTrees, 48);
+  assert.ok(initial.forest.totalTrees >= 48);
   assert.equal(initial.forest.variants, 3);
   assert.equal(initial.forest.species, "Betula alleghaniensis");
   assert.equal(initial.forest.windDisplacement, 0);

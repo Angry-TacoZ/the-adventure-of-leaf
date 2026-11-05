@@ -2,7 +2,7 @@
 
 You guide a yellow-birch leaf with wind as it falls from an Appalachian tree into the headwaters. The leaf follows the river current. Use gentle wind to choose a clear route between rocks and swimming fish; stronger wind creates a more turbulent ride.
 
-Choose Begin journey to start the physical fall from the tree. This build covers the opening and the existing river reach. Rapids, thunderstorm and the Atlantic ending are still being built. The temporary river-testing loop returns to the headwaters near the end of the reach.
+Choose Begin journey to start the physical fall from the tree. The current clear-weather route leads through mountain headwaters, descending rapids, a mountain lake, lower river, estuary and Atlantic Ocean. A location/progress label tracks the journey. Thunderstorm presentation and final scenery are still being built. After time in the ocean, the continuous-testing loop returns to the headwaters so you can try another run; the transition is abrupt.
 
 | Action | Keyboard | Standard gamepad |
 |---|---|---|
@@ -16,7 +16,7 @@ Choose Begin journey to start the physical fall from the tree. This build covers
 
 There are five persistent levels: calm plus four increasing strengths. Each trigger/key press changes one level; holding it does not keep increasing it. The selected level stays set when you release the stick, but a centred stick applies no directed wind. Keyboard W/up points downstream; S/down opposes the current without unrealistically reversing the downhill river.
 
-Start with one or two levels for small corrections. Aim for open water before reaching a rock and release direction early so the leaf's momentum can settle. The current does not automatically steer around upstream obstacles. Rocks and fish can physically deflect the leaf. Large impacts and strain can tear it; separated pieces continue moving, and the camera follows the largest piece.
+Start with one or two levels for small corrections. Aim for open water before reaching a rock and release direction early so the leaf's momentum can settle. The current does not automatically steer around upstream obstacles. Rocks and headwater fish can physically deflect the leaf. Rapids carry the leaf faster through narrower gaps and higher crests; the lake slows and widens the route. Large impacts and strain can tear it; separated pieces continue moving, and the camera follows the largest material piece.
 
 The adventure ends when the largest piece is below 25% of the original leaf's material area. Exactly 25% can continue. The ending offers Restart from the headwaters or Main menu. Restart restores the entire leaf and calm wind.
 

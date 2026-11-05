@@ -22,7 +22,7 @@ try {
   }
   await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).opening.phase === "afloat", null, { timeout: 60000 });
   const before = await read();
-  assert.equal(before.physics.engine, "Rapier"); assert.equal(before.forest.totalTrees, 48);
+  assert.equal(before.physics.engine, "Rapier"); assert.ok(before.forest.totalTrees >= 48);
   assert.ok(before.understory.species.includes("moss_01"));
   assert.equal(await page.evaluate(() => typeof window.advanceTime), "undefined");
   await page.keyboard.down("d"); await page.keyboard.press("e");

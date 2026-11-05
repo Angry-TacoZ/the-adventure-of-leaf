@@ -1,4 +1,5 @@
-import { createBankData, BED_WIDTH } from "./bank-terrain";
+import { createBankData, createBedData } from "./bank-terrain";
+import { waterLevel } from "./journey";
 import { createLeafTopology } from "./leaf-topology";
 import { createFishPhysics } from "./fish-physics";
 import { triangleArea, retainedFraction, shouldEndAdventure } from "./leaf-integrity";
@@ -17,22 +18,24 @@ export async function createRiverLeaf() {
   const world = new R.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = FIXED_STEP;
   const events = new R.EventQueue(true);
-  const fish = createFishPhysics(R, world);
+  const offset = { x: 0, z: 0 };
+  let rebases = 0;
+  const fish = createFishPhysics(R, world, offset);
+  const fixed: { collider: Rapier.Collider; position: Vector3Data }[] = [];
+  function staticCollider(desc: Rapier.ColliderDesc, position = { x: 0, y: 0, z: 0 }) {
+    const collider = world.createCollider(desc.setTranslation(position.x, position.y, position.z));
+    fixed.push({ collider, position });
+  }
   for (const rock of obstacles)
-    world.createCollider(
-      R.ColliderDesc.ball(rock.r).setTranslation(rock.x, 0.32, rock.z),
+    staticCollider(
+      R.ColliderDesc.ball(rock.r), { x: rock.x, y: waterLevel(rock.z) + 0.32, z: rock.z },
     );
   for (const side of [-1, 1] as const) {
     const bank = createBankData(side);
-    world.createCollider(R.ColliderDesc.trimesh(bank.positions, bank.indices));
+    staticCollider(R.ColliderDesc.trimesh(bank.positions, bank.indices));
   }
-  world.createCollider(
-    R.ColliderDesc.cuboid(
-      BED_WIDTH / 2,
-      0.05,
-      (river.start - river.end) / 2,
-    ).setTranslation(0, -0.46, (river.start + river.end) / 2),
-  );
+  const bed = createBedData();
+  staticCollider(R.ColliderDesc.trimesh(bed.positions, bed.indices));
   const positions: number[] = [],
     triangles: number[] = [];
   for (let row = 0; row < 17; row++) {
@@ -75,6 +78,21 @@ export async function createRiverLeaf() {
       !largest || materialArea(body) > materialArea(largest) ? body : largest, undefined);
   }
   let bodies: Rapier.SoftBody[] = [];
+  // Keep Rapier's deformable solve near its origin. Public state/snapshots remain
+  // in route coordinates; rebasing changes no velocity, rest shape or world pose.
+  function rebaseTo(x: number, z: number) {
+    const dx = x - offset.x, dz = z - offset.z;
+    if (dx === 0 && dz === 0) return;
+    for (const body of bodies)
+      for (let i = 0; i < body.numParticles(); i++) {
+        const p = body.particlePosition(i); p.x -= dx; p.z -= dz;
+        body.setParticlePosition(i, p);
+      }
+    fish.rebase(dx, dz);
+    offset.x = x; offset.z = z; rebases++;
+    for (const { collider, position } of fixed)
+      collider.setTranslation({ x: position.x - x, y: position.y, z: position.z - z });
+  }
   const material = R.SoftBodyMaterial.uniform(30, 1);
   material.tearStrain = 0.8;
   material.tearForce = 0.3;
@@ -90,6 +108,8 @@ export async function createRiverLeaf() {
     origin = { ...spawn };
     tears = 0;
     for (const body of world.softBodies.getAll()) world.removeSoftBody(body);
+    bodies = [];
+    rebaseTo(Math.round(origin.x), Math.round(origin.z));
     topology.clear();
     areaCache.clear();
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
@@ -98,7 +118,7 @@ export async function createRiverLeaf() {
       world.createSoftBody(
         desc
           .setMass(0.002)
-          .setTranslation(origin)
+          .setTranslation({ x: origin.x - offset.x, y: origin.y, z: origin.z - offset.z })
           .setMaterial(material)
           .setLinearDamping(0.02)
           .setParticleRadius(0.008),
@@ -111,6 +131,7 @@ export async function createRiverLeaf() {
     fragments: [],
   };
   const point = { x: 0, y: 0, z: 0 },
+    worldPoint = { x: 0, y: 0, z: 0 },
     velocity = { x: 0, y: 0, z: 0 },
     force = { x: 0, y: 0, z: 0 };
 
@@ -126,13 +147,17 @@ export async function createRiverLeaf() {
     reset,
     step(state: State, p: Params) {
       const started = performance.now();
+      const centre = primaryBody()?.centerOfMass();
+      if (centre && (Math.abs(centre.x) > 1 || Math.abs(centre.z) > 1))
+        rebaseTo(offset.x + Math.round(centre.x), offset.z + Math.round(centre.z));
       fish.step(state, p);
       for (const body of bodies) {
         body.resetForces(true);
         for (let i = 0; i < body.numParticles(); i++) {
           body.particlePosition(i, point);
           body.particleVelocity(i, velocity);
-          const e = sampleEnvironment(point.x, point.z, state, p),
+          worldPoint.x = point.x + offset.x; worldPoint.y = point.y; worldPoint.z = point.z + offset.z;
+          const e = sampleEnvironment(worldPoint.x, worldPoint.z, state, p),
             m = body.particleMass(i);
           // Effective 4 cm supported-area approximation, with half immersion at equilibrium.
           const immersed = Math.max(
@@ -180,9 +205,9 @@ export async function createRiverLeaf() {
         vz += velocity.z;
       }
       const n = primary.numParticles();
-      state.x = x / n;
+      state.x = x / n + offset.x;
       state.y = y / n;
-      state.z = z / n;
+      state.z = z / n + offset.z;
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
@@ -198,7 +223,13 @@ export async function createRiverLeaf() {
       lastStepMs = performance.now() - started;
     },
     readFrame() {
-      frame.fragments = bodies.map((body) => topology.read(body));
+      frame.fragments = bodies.map((body) => {
+        const data = topology.read(body);
+        for (let i = 0; i < data.positions.length; i += 3) {
+          data.positions[i] += offset.x; data.positions[i + 2] += offset.z;
+        }
+        return data;
+      });
       return frame;
     },
     readFishFrame: fish.read,
@@ -240,6 +271,7 @@ export async function createRiverLeaf() {
         tears,
         stepMs: lastStepMs,
         integrity: retainedFraction(bodies.map(materialArea), originalArea),
+        origin: { ...offset }, rebases,
       };
     },
     dispose() {

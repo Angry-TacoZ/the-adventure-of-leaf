@@ -2,6 +2,7 @@ import { bankHeight } from "./bank-terrain";
 import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { river } from "./simulation";
+import { headwatersExtent, channelHalfWidth } from "./journey";
 
 /** Supplied asset placement, independent of leaf physics and tree generation. */
 export async function createUnderstory(comparison = false) {
@@ -36,7 +37,7 @@ export async function createUnderstory(comparison = false) {
       gltf.scene.updateMatrixWorld(true);
       const count = comparison
         ? 12
-        : ({ fern_02: 48, grass_medium_01: 96, moss_01: 128, nettle_plant: 20 }[
+        : ({ fern_02: 48, grass_medium_01: 288, moss_01: 128, nettle_plant: 20 }[
             name
           ] ?? 12);
       gltf.scene.traverse((object) => {
@@ -63,14 +64,17 @@ export async function createUnderstory(comparison = false) {
         for (let i = 0; i < count; i++) {
           const side = i % 2 ? -1 : 1;
           // Modular permutation distributes the low-detail subset along the whole reach.
-          const slot = (Math.floor(i / 2) * 7) % (count / 2);
+          const lowerGrass = !comparison && name === "grass_medium_01" && i >= 96;
+          const placementCount = lowerGrass ? count - 96 : !comparison && name === "grass_medium_01" ? 96 : count;
+          const placementIndex = lowerGrass ? i - 96 : i;
+          const slot = (Math.floor(placementIndex / 2) * 7) % (placementCount / 2);
           const z = comparison
             ? 5 - slot * 4 - kind * 0.7
-            : river.start -
-              ((slot + 0.5) / (count / 2)) * (river.start - river.end);
+            : lowerGrass ? headwatersExtent.end - ((slot + 0.5) / (placementCount / 2)) * (headwatersExtent.end - river.end)
+              : headwatersExtent.start - ((slot + 0.5) / (placementCount / 2)) * (headwatersExtent.start - headwatersExtent.end);
           const x =
             side *
-            (({
+            (channelHalfWidth(z) - 3.7 + ({
               searsia_lucida: 7.0,
               moss_01: 5.1,
               grass_medium_01: 5.5,

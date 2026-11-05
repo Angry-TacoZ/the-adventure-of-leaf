@@ -28,7 +28,7 @@ export function createGameUI(callbacks: Callbacks) {
     let title = "", content = "";
     if (screen === "home") {
       title = "The Adventure<br>of Leaf";
-      content = `<p class="menu-intro">Guide a birch leaf with the wind.</p>${button("start", "Begin journey", true)}<nav>${button("guide", "How to play")}${button("settings", "Settings")}${button("credits", "Credits")}</nav><p class="build-note">Development preview · headwaters reach · ${revision}</p>`;
+      content = `<p class="menu-intro">Guide a birch leaf with the wind.</p>${button("start", "Begin journey", true)}<nav>${button("guide", "How to play")}${button("settings", "Settings")}${button("credits", "Credits")}</nav><p class="build-note">Development preview · journey in progress · ${revision}</p>`;
     } else if (screen === "pause") {
       title = "Paused";
       content = button("resume", "Resume journey", true) + `<nav>${button("start", "Restart from the headwaters")}${button("settings", "Settings")}${button("guide", "How to play")}${button("home", "Main menu")}</nav>`;

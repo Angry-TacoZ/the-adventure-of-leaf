@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import { attribute, positionLocal, uniform, sin } from "three/tsl";
 import { createBirchGeometry } from "./birch-tree";
 import { bankHeight } from "./bank-terrain";
-import { river } from "./simulation";
+import { headwatersExtent as river, channelHalfWidth } from "./journey";
 import { Rng } from "./vendor/seedthree/rng.js";
 
 function barkTexture() {
@@ -50,11 +50,13 @@ export function createForest() {
     const { wood, foliage } = createBirchGeometry(`yellow-birch-${variant}`);
     geometries.push(wood, foliage);
     const roots: { matrix: THREE.Matrix4; z: number; slot: number; opening: boolean }[] = [];
-    for (let section = 0; section < 4; section++) {
+    for (let section = 0; section < 8; section++) {
       for (let i = 0; i < 4; i++) {
         const side = i % 2 ? -1 : 1;
-        let z = river.start - (section + (variant * 2 + Math.floor(i / 2) + 0.5) / 6) * (river.start - river.end) / 4 + rng.range(-1.8, 1.8);
-        let x = side * rng.range(7, 12.5), scale = rng.range(0.8, 1.16);
+        const fraction = (variant * 2 + Math.floor(i / 2) + 0.5) / 6;
+        let z = (section < 4 ? river.start - (section + fraction) * (river.start - river.end) / 4
+          : river.end - (section - 4 + fraction) * 50) + rng.range(-1.8, 1.8);
+        let x = side * (rng.range(7, 12.5) + channelHalfWidth(z) - 3.7), scale = rng.range(0.8, 1.16);
         // One of the existing trees overhangs the headwaters. The opening point
         // below is selected from its actual blade geometry, not a floating prop.
         const openingTree = variant === 0 && section === 0 && i === 2;
@@ -63,7 +65,7 @@ export function createForest() {
         // Bury the root flare below both sides of the local slope.
         matrix.setPosition(x, bankHeight(x, z) - 0.22, z);
         roots.push({ matrix: matrix.clone(), z, slot: i, opening: openingTree });
-        if (z > -8 && z < 18) {
+        if (openingTree) {
           const blades = foliage.getAttribute("position");
           for (let vertex = 6; vertex < blades.count; vertex += 7) {
             candidate.fromBufferAttribute(blades, vertex).applyMatrix4(matrix);
@@ -126,7 +128,7 @@ export function createForest() {
       }
     },
     diagnostics: () => ({ species: "Betula alleghaniensis", variants: 3,
-      totalTrees: 48, trees: batches.reduce((n, batch) => n + batch.trunk.count, 0),
+      totalTrees: batches.reduce((n, batch) => n + batch.roots.length, 0), trees: batches.reduce((n, batch) => n + batch.trunk.count, 0),
       leafTriangles: batches.reduce((n, batch) => n + batch.crown.count *
         Math.min(batch.crown.geometry.drawRange.count, batch.crown.geometry.index!.count) / 3, 0),
       windDisplacement: wind.value.length(), geometries: geometries.length }),

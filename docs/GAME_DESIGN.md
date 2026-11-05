@@ -1,5 +1,5 @@
 # Approved game design
-A leaf falls from a mountain tree and journeys downstream through mountain headwaters, rapids, a lake, and a river mouth to the ocean. Natural motion, atmosphere, environmental animation and player influence carry the experience. This prototype covers only a short river section.
+A leaf falls from a mountain tree and journeys downstream through mountain headwaters, rapids, a lake, and a river mouth to the ocean. Natural motion, atmosphere, environmental animation and player influence carry the experience. The current draft connects the clear-weather route; thunderstorm integration and final acceptance remain unfinished.
 
 The player controls wind, not the leaf as a vehicle. The leaf follows the natural current without input. Wind affects both leaf motion and water agitation, allowing a peaceful or more chaotic journey without reversing the downhill current unrealistically. Left stick sets wind direction; each right or left trigger press selects one of five persistent wind levels (calm plus four increasing strengths); releasing the stick removes directed wind. Intensity transitions smoothly between selected levels. Include deadzones, smoothing, response curves and keyboard alternatives. Leaf floats, retains momentum, responds to water, wind and obstacles, and pitches, rolls and rotates believably.
 
@@ -18,3 +18,7 @@ James authorizes milestone development previews on GitHub Pages while PRs remain
 ## Confirmed damage ending (November 4, 2026)
 
 End the adventure when the largest remaining leaf fragment is below 25% of the original leaf. Measure retained material area rather than duplicated particle count. Show: "The adventure of Leaf has ended, try again?" Offer restart from the headwaters or return to the main menu.
+
+## Approved sky technology (November 4, 2026)
+
+Adapt Eanpa-Sky Earth sky/weather with a lighter Low-quality path. Preserve the existing water optics, Rapier clock and approved controls. Validate stock Three/backend compatibility and whole-game performance before replacing the working sky.
