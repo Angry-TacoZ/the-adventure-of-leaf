@@ -83,21 +83,29 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/refraction-contact-browser.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
-  await suite("dev", "tests/whitewater-browser.mjs");
-  await suite("dev", "tests/water-entry-browser.mjs");
-  await suite("dev", "tests/journey-render-browser.mjs");
-  await suite("dev", "tests/journey-physics-browser.mjs");
-  await suite("dev", "tests/storm-browser.mjs");
-  await suite("dev", "tests/menu-browser.mjs");
-  await suite("dev", "tests/lifecycle-browser.mjs");
-  await suite("dev", "tests/leaf-view-browser.mjs");
-  await suite("dev", "tests/understory-browser.mjs");
-  await suite("dev", "tests/forest-browser.mjs");
-  await suite("dev", "tests/opening-browser.mjs");
-  await suite("dev", "tests/atmosphere-browser.mjs");
-  await suite("dev", "tests/rapier-prototype-browser.mjs");
-  await suite("dev", "tests/rapier-gameplay-browser.mjs");
-  await suite("dev", "tests/rapier-damage-browser.mjs");
-  await suite("dev", "tests/browser-check.mjs");
-  await suite("preview", "tests/realtime-browser.mjs");
+  // One canonical list preserves default coverage while CI partitions the work.
+  const suites = [
+    ["graphics", "dev", "tests/whitewater-browser.mjs"],
+    ["graphics", "dev", "tests/water-entry-browser.mjs"],
+    ["physics", "dev", "tests/journey-physics-browser.mjs"],
+    ["graphics", "dev", "tests/journey-render-browser.mjs"],
+    ["interaction", "dev", "tests/storm-browser.mjs"],
+    ["interaction", "dev", "tests/menu-browser.mjs"],
+    ["interaction", "dev", "tests/lifecycle-browser.mjs"],
+    ["physics", "dev", "tests/leaf-view-browser.mjs"],
+    ["graphics", "dev", "tests/understory-browser.mjs"],
+    ["graphics", "dev", "tests/forest-browser.mjs"],
+    ["graphics", "dev", "tests/opening-browser.mjs"],
+    ["graphics", "dev", "tests/atmosphere-browser.mjs"],
+    ["physics", "dev", "tests/rapier-prototype-browser.mjs"],
+    ["physics", "dev", "tests/rapier-gameplay-browser.mjs"],
+    ["physics", "dev", "tests/rapier-damage-browser.mjs"],
+    ["physics", "dev", "tests/browser-check.mjs"],
+    ["interaction", "preview", "tests/realtime-browser.mjs"],
+  ];
+  const group = process.argv.find(a => a.startsWith("--group="))?.slice(8);
+  if (group && !suites.some(([name]) => name === group)) throw Error(`Unknown browser group: ${group}`);
+  const selected = suites.filter(([name]) => !group || group === name);
+  if (process.argv.includes("--list")) console.log(JSON.stringify(selected));
+  else for (const [, mode, script] of selected) await suite(mode, script);
 }

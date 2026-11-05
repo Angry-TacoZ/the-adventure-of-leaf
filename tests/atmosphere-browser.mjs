@@ -9,6 +9,12 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const errors = []; page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+  if (process.env.LEAF_SKY_COUNTERFACTUAL === "1") await page.route("**/src/sky.ts*", async route => {
+    const response = await route.fetch(), body = await response.text();
+    const correction = /rawDirection\.mul\(TSL\.vec3\(1,\s*-1,\s*1\)\)/;
+    assert.match(body, correction);
+    await route.fulfill({ response, body: body.replace(correction, "rawDirection") });
+  });
   await page.goto(`${process.env.LEAF_BASE_URL}/?testMode=manual${native ? "" : "&forceWebGL"}`);
   await page.waitForFunction(() => window.advanceTime);
   const read = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
@@ -44,6 +50,14 @@ try {
     assert.equal((await read()).sky.refreshSeconds, quality === "1" ? .25 : .75);
   }
   assert.equal((await read()).resources.geometries, initial.resources.geometries);
+  const calmPhase = (await read()).sky.cloudDisplacement[0];
+  await page.keyboard.down("e"); await page.keyboard.down("d");
+  await page.evaluate(() => window.advanceTime(1000));
+  await page.keyboard.up("e"); await page.keyboard.up("d");
+  const directedPhase = (await read()).sky.cloudDisplacement[0];
+  assert.ok(directedPhase > calmPhase + .05, "player wind did not advect clouds");
+  await page.evaluate(() => { window.advanceTime(0); window.advanceTime(0); });
+  assert.ok(Math.abs((await read()).sky.cloudDisplacement[0] - directedPhase) < 1e-6, "redraw accumulated wind phase twice");
   for (const x of [-100, 100]) {
     await page.goto(`${process.env.LEAF_BASE_URL}/?testMode=manual&journeyZ=-530&journeyX=${x}${native ? "" : "&forceWebGL"}`);
     await page.waitForFunction(() => window.advanceTime);
@@ -58,6 +72,16 @@ try {
       return changed / (first.length / 4);
     }, [oceanSky.toString("base64"), bareOcean.toString("base64")]);
     assert.ok(coverage > .8, `sky does not enclose lateral ocean camera at${x}: ${coverage}`);
+    const cloudContrast = await page.evaluate(async (encoded) => {
+      const i = new Image(); i.src = `data:image/png;base64,${encoded}`; await i.decode();
+      const c = document.createElement("canvas"); c.width = i.width; c.height = i.height;
+      const ctx = c.getContext("2d"); ctx.drawImage(i,0,0);
+      const d = ctx.getImageData(640,20,560,160).data, values=[];
+      for (let k=0;k<d.length;k+=4) values.push((d[k]+d[k+1]+d[k+2])/3);
+      values.sort((a,b)=>a-b); return values[Math.floor(values.length*.9)]-values[Math.floor(values.length*.1)];
+    }, oceanSky.toString("base64"));
+    assert.ok(cloudContrast > 8, `clouds missing from upper ocean sky on${native ? "WebGPU" : "WebGL2"}: ${cloudContrast}`);
+
   }
 
   const physics = await page.evaluate(async () => {

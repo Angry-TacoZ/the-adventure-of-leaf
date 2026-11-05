@@ -142,3 +142,20 @@ Pinned baseline3a9473f versus95884ab gameplay source (documentation-only head1d3
 | WebGL2 | 1920×1080 | journey-headwaters | 15.65 | 24.60 |
 
 Hardware WebGL2 costs more at both sampled resolutions; native WebGPU is mixed with broad tails. No performance improvement is established. Render clock sampling does not model physical journey integration, cold startup, or storm-preset worst cases. The80-frame window contains only a few cloud refreshes, so longer real-time measurements remain necessary. Cloud softness/grain and Linux software timing remain unresolved. Raw samples, conditions and source hashes: evidence/weather-2026-11-05/profile.json.
+
+## Sky correction/filter comparison — November 5, 2026
+
+Pinned16d0c4a versus the corrected/filtered working source; exact measured source hashes are preserved in evidence/sky-correction-2026-11-05/profile.json and matched the source at recording. HardwareChrome156/RTX4090/13900KF, quality1/DPR1. Fixed physical headwaters pose, advancing renderclock,80serial queue-fenced frames after60frames/one-second warmup. This includes CPU+GPUcompletion and cloudrefreshes; no physicsintegration or displayFPS. No other local test browsers ran during measurement; other machineactivity was uncontrolled.
+
+| Backend | Viewport | Pipeline | Mean ms | p95 ms |
+|---|---|---|---:|---:|
+| WebGPU | 1280×720 | baseline-headwaters | 19.50 | 25.90 |
+| WebGPU | 1280×720 | journey-headwaters | 25.01 | 30.50 |
+| WebGPU | 1920×1080 | baseline-headwaters | 25.01 | 32.00 |
+| WebGPU | 1920×1080 | journey-headwaters | 23.63 | 37.00 |
+| WebGL2 | 1280×720 | baseline-headwaters | 19.89 | 23.40 |
+| WebGL2 | 1280×720 | journey-headwaters | 15.31 | 19.70 |
+| WebGL2 | 1920×1080 | baseline-headwaters | 15.95 | 21.90 |
+| WebGL2 | 1920×1080 | journey-headwaters | 19.31 | 23.00 |
+
+Results are mixed with substantial order/tail variation. Filtering adds texture samples; these data establish neither a speedup nor a general cost bound. Low retains smaller buffers and slower refreshes. Native and software image/behavior checks pass; production pacing, cold-start and multi-hour behavior remain separate evidence.

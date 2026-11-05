@@ -36,6 +36,7 @@ try {
   const reset = await read();
   // DEV fixtures deliberately restart at their configured reach.
   assert.equal(reset.weather.strength, initial.weather.strength); assert.equal(reset.time, 0);
+  assert.equal(reset.sky.storm, true); assert.equal(reset.sky.transitionActive, false, "restart retained cloud transition");
   assert.equal(reset.physics.fragments, 1);
   assert.equal(reset.weather.allocatedSegments, initial.weather.allocatedSegments);
   await page.goto(process.env.LEAF_BASE_URL || "http://127.0.0.1:5200");

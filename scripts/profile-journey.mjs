@@ -10,12 +10,15 @@ import os from "node:os";
 
 // Baseline is an immutable git archive, using the same installed dependencies.
 // Its Vite cache must be separate from the live workspace's cache.
-const baseline = fileURLToPath(new URL("../output/benchmark-3a9473f/", import.meta.url));
+const baselineSha = process.argv.find(a => a.startsWith("--baseline="))?.slice(11) || "3a9473fb8c174ec568202b7fa9d997c233190ec3";
+assert.match(baselineSha, /^[0-9a-f]{40}$/, "Supply an exact baseline commit SHA");
+const baselineKey = baselineSha.slice(0, 7);
+const baseline = fileURLToPath(new URL(`../output/benchmark-${baselineKey}/`, import.meta.url));
 const root = fileURLToPath(new URL("../", import.meta.url));
-const archive = path.join(root, "output", "benchmark-3a9473f.tar");
+const archive = path.join(root, "output", `benchmark-${baselineKey}.tar`);
 await mkdir(baseline, { recursive: true });
 execFileSync("git", ["archive", "--format=tar", `--output=${archive}`,
-  "3a9473fb8c174ec568202b7fa9d997c233190ec3", "src", "public", "index.html", "package.json", "package-lock.json", "tsconfig.json", "vite.config.ts"], { cwd: root });
+  baselineSha, "src", "public", "index.html", "package.json", "package-lock.json", "tsconfig.json", "vite.config.ts"], { cwd: root });
 execFileSync("tar", ["-xf", archive, "-C", baseline]);
 if (!existsSync(path.join(baseline, "node_modules")))
   await symlink(path.join(root, "node_modules"), path.join(baseline, "node_modules"), "junction");
@@ -88,5 +91,5 @@ try {
       }
   const sourceBlobs = Object.fromEntries(["src/main.ts", "src/sky.ts", "src/weather.ts", "src/weather-view.ts", "src/lightning.ts", "src/water.ts", "src/water-grid.ts", "src/journey.ts", "src/simulation.ts", "src/forest.ts", "src/understory.ts", "src/bank-terrain.ts"].map((file) =>
     [file, execFileSync("git", ["hash-object", `--path=${file}`, file], { cwd: root, encoding: "utf8" }).trim()]));
-  await writeFile(process.argv.includes("--animate") ? "output/weather-profile.json" : "output/journey-profile.json", JSON.stringify({ cpu: os.cpus()[0].model, browser: browser.version(), baseline: "3a9473fb8c174ec568202b7fa9d997c233190ec3", sourceBlobs, conditions: `${process.argv.includes("--animate") ? "Fixed physical pose, render animation clock advances1/60s per serial frame (no physics integration); cloud refreshes included" : "Fixed pose/time"}, quality1, hardware Chrome, profileGPU instrumentation enabled, 80 serialized frames after at least 60 frames and one second warmup. Completion includes CPU plus GPU queue fence/gl.finish; it is not isolated GPU time or display FPS. Batch timestamps have a narrower scope. Other active GPU work is uncontrolled.`, results }, null, 2));
+  await writeFile(process.argv.find(a => a.startsWith("--output="))?.slice(9) || (process.argv.includes("--animate") ? "output/weather-profile.json" : "output/journey-profile.json"), JSON.stringify({ cpu: os.cpus()[0].model, browser: browser.version(), baseline: baselineSha, sourceBlobs, conditions: `${process.argv.includes("--animate") ? "Fixed physical pose, render animation clock advances1/60s per serial frame (no physics integration); cloud refreshes included" : "Fixed pose/time"}, quality1, hardware Chrome, profileGPU instrumentation enabled, 80 serialized frames after at least 60 frames and one second warmup. Completion includes CPU plus GPU queue fence/gl.finish; it is not isolated GPU time or display FPS. Batch timestamps have a narrower scope. Other active GPU work is uncontrolled.`, results }, null, 2));
 } finally { await browser?.close(); server.kill(); await exited; }
