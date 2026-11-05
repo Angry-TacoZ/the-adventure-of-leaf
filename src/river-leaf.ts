@@ -2,7 +2,7 @@ import { createBankData, createBedData } from "./bank-terrain";
 import { waterLevel } from "./journey";
 import { createLeafTopology } from "./leaf-topology";
 import { createFishPhysics } from "./fish-physics";
-import { triangleArea, retainedFraction, shouldEndAdventure } from "./leaf-integrity";
+import { triangleArea, retainedFraction, shouldEndAdventure, createGrindMeter } from "./leaf-integrity";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
   FIXED_STEP,
@@ -101,6 +101,9 @@ export async function createRiverLeaf() {
   material.edgePlasticYield = 0.3;
   material.edgePlasticCreep = 0.2;
   material.edgePlasticMax = 0.2;
+  // Sustained rock grinding tears the leaf: a free 2 g cloth builds no engine
+  // tear load against smooth balls, so contact time drives damage instead.
+  const grind = createGrindMeter(0.6, 0.15);
   let lastStepMs = 0,
     tears = 0;
   let origin: Vector3Data = { x: 0, y: 0.08, z: 0 };
@@ -111,6 +114,7 @@ export async function createRiverLeaf() {
     bodies = [];
     rebaseTo(Math.round(origin.x), Math.round(origin.z));
     topology.clear();
+    grind.reset();
     areaCache.clear();
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
     if (!desc) throw Error("Rapier leaf triangulation failed");
@@ -135,6 +139,24 @@ export async function createRiverLeaf() {
     velocity = { x: 0, y: 0, z: 0 },
     force = { x: 0, y: 0, z: 0 };
 
+  function grindCut(px: number, py: number, pz: number) {
+    // Gameplay cut at a particle-space point, driven by sustained rock
+    // contact rather than engine tear load. Shares the tear counting,
+    // sound trigger and integrity path with the verification hook.
+    const body = primaryBody();
+    if (!body) return 0;
+    const event = world.cutSoftBody(body, [
+      { x: px - 2, y: py - 2, z: pz },
+      { x: px + 2, y: py - 2, z: pz },
+      { x: px, y: py + 4, z: pz },
+    ]);
+    if (event) {
+      tears++;
+      event.free();
+      sync();
+    }
+    return bodies.length;
+  }
   function sync() {
     bodies = world.softBodies.getAll();
     topology.prune(new Set(bodies.map((b) => b.handle)));
@@ -211,6 +233,22 @@ export async function createRiverLeaf() {
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
+      // Sustained rock grinding cuts the leaf. Gap is route-space distance
+      // from leaf centre to the nearest rock surface; the cut lands on the
+      // rock-side surface point converted back to particle space.
+      let gap = Infinity, contactX = state.x, contactZ = state.z;
+      for (const rock of obstacles) {
+        const dx = state.x - rock.x, dz = state.z - rock.z;
+        const dist = Math.hypot(dx, dz);
+        const d = dist - rock.r;
+        if (d < gap) {
+          gap = d;
+          const s = dist > 1e-6 ? rock.r / dist : 0;
+          contactX = rock.x + dx * s;
+          contactZ = rock.z + dz * s;
+        }
+      }
+      if (grind.sample(gap, FIXED_STEP)) grindCut(contactX - offset.x, y / n, contactZ - offset.z);
       // A terminal tear at the testing-loop boundary must not heal via reset.
       if (state.z < river.stop && !shouldEndAdventure(materialArea(primary) / originalArea)) {
         reset();
@@ -233,6 +271,7 @@ export async function createRiverLeaf() {
       return frame;
     },
     readFishFrame: fish.read,
+    grindCut,
     forceTear() {
       // Verification-only caller: cut across the middle using engine topology, not duplicated meshes.
       const body = primaryBody();
@@ -269,6 +308,7 @@ export async function createRiverLeaf() {
         constraints: bodies.reduce((n, b) => n + b.numEdges(), 0),
         fragments: bodies.length,
         tears,
+        grind: grind.fraction(),
         stepMs: lastStepMs,
         integrity: retainedFraction(bodies.map(materialArea), originalArea),
         origin: { ...offset }, rebases,
