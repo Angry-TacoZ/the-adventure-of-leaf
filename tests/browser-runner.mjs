@@ -68,6 +68,8 @@ if (process.argv.includes("--optics")) {
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/journey-physics-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/keyboard-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/storm-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/menu-browser.mjs");
@@ -89,6 +91,7 @@ if (process.argv.includes("--optics")) {
     ["graphics", "dev", "tests/water-entry-browser.mjs"],
     ["physics", "dev", "tests/journey-physics-browser.mjs"],
     ["graphics", "dev", "tests/journey-render-browser.mjs"],
+    ["interaction", "dev", "tests/keyboard-browser.mjs"],
     ["interaction", "dev", "tests/storm-browser.mjs"],
     ["interaction", "dev", "tests/menu-browser.mjs"],
     ["interaction", "dev", "tests/lifecycle-browser.mjs"],

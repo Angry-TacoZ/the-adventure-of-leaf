@@ -1,3 +1,4 @@
+import { createKeyboardControls } from "./keyboard-controls";
 import { createStormTimeline } from "./lightning";
 import { weatherAt } from "./weather";
 import { createWeatherView } from "./weather-view";
@@ -133,7 +134,8 @@ camera.position.set(
   state.y + p.cameraHeight,
   state.z + p.cameraDistance,
 );
-const keys = new Set<string>();
+const keyboard = createKeyboardControls();
+const keys = keyboard.keys;
 // Poly Haven Low Tide Rocks: diffuse color is sRGB; one tile spans approximately 2.2 m.
 const bedTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/low-tide-rocks-diffuse.jpg`,
@@ -338,13 +340,13 @@ const audio = createGameAudio();
 const stormTimeline = createStormTimeline();
 onFinalPageHide(() => { void audio.dispose(); });
 function resetGame() {
-  placeLeafAtStart(); accumulator = 0; previousTears = 0; keys.clear(); redraw = true;
+  placeLeafAtStart(); accumulator = 0; previousTears = 0; keyboard.clear(); redraw = true;
 }
 const ui = createGameUI({
   manual, quality: p.quality, volumes: audio.volumes,
   onStart: () => { resetGame(); if (!manual) void audio.unlock(); },
   onHome: resetGame,
-  onChange: () => { keys.clear(); redraw = true; },
+  onChange: () => { keyboard.clear(); redraw = true; },
   onQuality: (value) => { p.quality = value; qualityControl.value = String(value); redraw = true; },
   onVolume: (bus, value) => audio.setVolume(bus, value),
   onSoundTest: () => { void audio.unlock().then(() => audio.play("click")); },
@@ -358,15 +360,15 @@ const samples: {
 }[] = [];
 const cameraTarget = new THREE.Vector3();
 let submersionTest: { offset: number; pitch: number; view: string } | undefined;
-function input() {
+function input(consumeButtons = false) {
   let x =
     (keys.has("d") || keys.has("arrowright") ? 1 : 0) -
     (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
   let z =
     (keys.has("s") || keys.has("arrowdown") ? 1 : 0) -
     (keys.has("w") || keys.has("arrowup") ? 1 : 0);
-  let raise = keys.has("e") ? 1 : 0,
-    lower = keys.has("q") ? 1 : 0;
+  const buttons = consumeButtons ? keyboard.step() : keyboard.read();
+  let raise = buttons.raise, lower = buttons.lower;
   const gp = navigator
     .getGamepads?.()
     ?.find((g) => g?.connected && g.mapping === "standard");
@@ -395,7 +397,7 @@ function input() {
 function update(dt: number) {
   const laps = state.laps;
   const wasLanded = openingLanded;
-  updateWind(state, p, input(), dt);
+  updateWind(state, p, input(true), dt);
   physics.step(state, p);
   if (stormTimeline.step(state.time, weatherAt(state.z, state.time).strength).thunder) audio.play("thunder");
   if (state.laps !== laps) {
@@ -512,22 +514,22 @@ function loop(now: number) {
   if ((!manual && !ui.paused) || redraw || frames === 1) { render(manual || ui.paused ? 0 : dt); redraw = false; }
 }
 window.addEventListener("keydown", (e) => {
-  if (e.key.toLowerCase() === "f") {
+  if (e.key.toLowerCase() === "f" && !e.repeat) {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void app.requestFullscreen();
   }
   // Modal controls retain native keyboard behavior; menu input cannot steer.
   if (ui.paused) return;
-  keys.add(e.key.toLowerCase());
+  keyboard.press(e.key.toLowerCase(), e.repeat);
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
     e.preventDefault();
-  if (e.key.toLowerCase() === "r") {
+  if (e.key.toLowerCase() === "r" && !e.repeat) {
     ui.begin();
     if (manual) render(0);
   }
 });
-window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
-window.addEventListener("blur", () => keys.clear());
+window.addEventListener("keyup", (e) => keyboard.release(e.key.toLowerCase()));
+window.addEventListener("blur", () => keyboard.clear());
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
