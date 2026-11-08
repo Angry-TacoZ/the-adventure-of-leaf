@@ -185,10 +185,13 @@ export async function createRiverLeaf() {
       state.vz = vz / n;
       // Gap is true clearance: the nearest leaf particle to the nearest rock
       // surface. Far rocks are skipped by centroid distance first so the
-      // per-particle scan stays local. The cut reuses the nearest particle's
-      // position, clamped to ±0.3 m of the centroid so the triangle always
-      // intersects the 0.89 m leaf, even head-on. A null cut is a recorded
-      // miss; the meter stays full and retries instead of resetting.
+      // per-particle scan stays local. The cut sits halfway between the
+      // centroid and the nearest particle, clamped to ±0.15 m: strictly
+      // inside the leaf for any non-degenerate fragment, so the triangle
+      // cannot sit tangent past a tip, even head-on. A null cut is a
+      // recorded miss; the meter stays full and retries instead of
+      // resetting. Below 8 particles the leaf is already destroyed, so
+      // grinding pauses with no miss and no reset.
       let gap = Infinity, nearX = state.x, nearZ = state.z;
       for (const rock of obstacles) {
         const cdx = state.x - rock.x, cdz = state.z - rock.z;
@@ -199,8 +202,8 @@ export async function createRiverLeaf() {
           if (d < gap) { gap = d; nearX = point.x; nearZ = point.z; }
         }
       }
-      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, nearZ - state.z));
-      if (grind.sample(gap, FIXED_STEP)) {
+      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, nearZ - state.z)) * 0.5;
+      if (primary.numParticles() > 8 && grind.sample(gap, FIXED_STEP)) {
         if (grindCut(nearX, y / n, cutZ)) grind.reset();
         else misses++;
       }
