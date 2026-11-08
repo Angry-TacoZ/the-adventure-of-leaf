@@ -1,3 +1,6 @@
+import { createBankMeshes } from "./bank-view";
+import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
+import { createUnderstory } from "./understory";
 import { createLeafView } from "./leaf-view";
 import { onFinalPageHide } from "./lifecycle";
 import { createRiverLeaf } from "./river-leaf";
@@ -115,7 +118,7 @@ bedTexture.colorSpace = THREE.SRGBColorSpace;
 bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
 const riverLength = river.start - river.end;
 const riverCenter = (river.start + river.end) / 2;
-bedTexture.repeat.set(8.3 / 2.2, riverLength / 2.2);
+bedTexture.repeat.set(BED_WIDTH / 2.2, riverLength / 2.2);
 bedTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(200, 200),
@@ -129,7 +132,7 @@ ground.position.y = -0.42;
 ground.position.z = riverCenter;
 scene.add(ground);
 const bed = new THREE.Mesh(
-  new THREE.PlaneGeometry(8.3, riverLength),
+  new THREE.PlaneGeometry(BED_WIDTH, riverLength),
   new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: bedTexture,
@@ -146,24 +149,9 @@ const shoreTexture = new THREE.TextureLoader().load(
 shoreTexture.colorSpace = THREE.SRGBColorSpace;
 shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
 shoreTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
-const shoreGeometry = new THREE.BoxGeometry(5, 1.1, riverLength);
-const shorePositions = shoreGeometry.getAttribute("position");
-const shoreNormals = shoreGeometry.getAttribute("normal");
-const shoreUV = shoreGeometry.getAttribute("uv");
-for (let i = 0; i < shoreUV.count; i++) {
-  const up = Math.abs(shoreNormals.getY(i)) > 0.5,
-    side = Math.abs(shoreNormals.getX(i)) > 0.5;
-  shoreUV.setXY(
-    i,
-    (side ? shorePositions.getZ(i) : shorePositions.getX(i)) / 2.2,
-    (up ? shorePositions.getZ(i) : shorePositions.getY(i)) / 2.2,
-  );
-}
-const shoreMaterial = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  map: shoreTexture,
-  roughness: 1,
-});
+const banks = createBankMeshes(shoreTexture);
+for (const mesh of banks.meshes) scene.add(mesh);
+window.addEventListener("pagehide", () => banks.dispose(), { once: true });
 const rockTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
 );
@@ -176,16 +164,14 @@ const rockMaterial = new THREE.MeshStandardMaterial({
 });
 // Temporary sculpted banks, independently generated geometry.
 for (const side of [-1, 1]) {
-  const bank = new THREE.Mesh(shoreGeometry, shoreMaterial);
-  bank.position.set(side * 6.7, 0.05, riverCenter);
-  bank.rotation.z = side * 0.04;
-  scene.add(bank);
   for (let i = 0; i < 40; i++) {
     const rock = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.25 + (i % 4) * 0.13, 0),
       rockMaterial,
     );
-    rock.position.set(side * (4.45 + (i % 3) * 0.5), 0.35, -i * 2.8 + 6);
+    const x = side * (4.45 + (i % 3) * 0.5),
+      z = -i * 2.8 + 6;
+    rock.position.set(x, bankHeight(x, z) + (0.25 + (i % 4) * 0.13) * 0.25, z);
     rock.scale.set(1.3, 0.65, 1);
     scene.add(rock);
   }
@@ -214,7 +200,7 @@ for (const rock of obstacles) {
   scene.add(foam);
   foams.push({ mesh: foam, rock });
 }
-const geometry = new THREE.PlaneGeometry(8.3, riverLength, 70, 480);
+const geometry = new THREE.PlaneGeometry(WATER_WIDTH, riverLength, 70, 480);
 geometry.translate(0, -riverCenter, 0);
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
@@ -223,6 +209,13 @@ const leafView = createLeafView();
 const leaf = leafView.group;
 onFinalPageHide(() => leafView.dispose());
 scene.add(leaf);
+const comparisonPlants =
+  (import.meta.env.DEV ||
+    import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") &&
+  new URLSearchParams(location.search).get("understory") === "compare";
+const understory = await createUnderstory(comparisonPlants);
+scene.add(understory.group);
+window.addEventListener("pagehide", () => understory.dispose(), { once: true });
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -397,6 +390,7 @@ function render(dt: number) {
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
   optics.setQuality(p.quality);
+  understory.setQuality(p.quality);
   updateWindStreaks();
   const renderStart = performance.now();
   renderer.render(scene, camera);
@@ -454,6 +448,7 @@ window.render_game_to_text = () =>
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
     physics: physics.diagnostics(),
+    understory: understory.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,
