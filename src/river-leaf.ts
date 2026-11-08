@@ -61,10 +61,9 @@ export async function createRiverLeaf() {
   material.edgePlasticMax = 0.2;
   // Sustained rock grinding tears the leaf: a free 2 g cloth builds no engine
   // tear load against smooth balls, so contact time drives damage instead.
-  // The leaf is 0.89 m long, so contact counts from the leaf edge, not its
-  // centre — a leaf parked edge-on against a rock still grinds.
+  // The gate measures the nearest particle, so a leaf parked edge-on
+  // against a rock still grinds.
   const grind = createGrindMeter(0.6, 0.15);
-  const LEAF_HALF = 0.45;
   let misses = 0;
   let lastStepMs = 0,
     tears = 0;
@@ -184,27 +183,25 @@ export async function createRiverLeaf() {
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
-      // Sustained rock grinding cuts the leaf. Gap is distance from the leaf
-      // edge to the nearest rock surface; the cut lands on the rock-side
-      // surface point. State is already in world space on this branch.
-      let gap = Infinity, contactX = state.x, contactZ = state.z;
+      // Gap is true clearance: the nearest leaf particle to the nearest rock
+      // surface. Far rocks are skipped by centroid distance first so the
+      // per-particle scan stays local. The cut reuses the nearest particle's
+      // position, clamped to ±0.3 m of the centroid so the triangle always
+      // intersects the 0.89 m leaf, even head-on. A null cut is a recorded
+      // miss; the meter stays full and retries instead of resetting.
+      let gap = Infinity, nearX = state.x, nearZ = state.z;
       for (const rock of obstacles) {
-        const dx = state.x - rock.x, dz = state.z - rock.z;
-        const dist = Math.hypot(dx, dz);
-        const d = dist - rock.r - LEAF_HALF;
-        if (d < gap) {
-          gap = d;
-          const s = dist > 1e-6 ? rock.r / dist : 0;
-          contactX = rock.x + dx * s;
-          contactZ = rock.z + dz * s;
+        const cdx = state.x - rock.x, cdz = state.z - rock.z;
+        if (Math.hypot(cdx, cdz) - rock.r > 1.0) continue;
+        for (let i = 0; i < primary.numParticles(); i++) {
+          primary.particlePosition(i, point);
+          const d = Math.hypot(point.x - rock.x, point.z - rock.z) - rock.r;
+          if (d < gap) { gap = d; nearX = point.x; nearZ = point.z; }
         }
       }
-      // Clamp the cut plane to the leaf's extent: past the half-length the
-      // triangle misses the leaf and cutSoftBody returns null. A null cut is
-      // a recorded miss; the meter stays full and retries instead of resetting.
-      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, contactZ - state.z));
+      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, nearZ - state.z));
       if (grind.sample(gap, FIXED_STEP)) {
-        if (grindCut(contactX, y / n, cutZ)) grind.reset();
+        if (grindCut(nearX, y / n, cutZ)) grind.reset();
         else misses++;
       }
       if (state.z < river.stop) {
