@@ -35,6 +35,14 @@ try {
     native ? "WebGPU" : "WebGL2",
   );
   await page.evaluate(() => { window.advanceTime(3000); window.setVerificationLeafDiagnostic(true); });
+  // Counterfactual: the material mask must reject a missing leaf.
+  await page.evaluate(() => { window.setLeafSubmersion(0.14, 0.25, "inspection"); window.setVerificationWaterVisible(false); window.advanceTime(0); });
+  const diagnosticReference = await page.screenshot();
+  await page.evaluate(() => { window.setVerificationLeafVisible(false); window.advanceTime(0); });
+  const missingLeaf = await page.screenshot();
+  const counterfactual = await compareDiagnosticLeaf(page, diagnosticReference, missingLeaf);
+  assert.ok(counterfactual.reference > 500 && counterfactual.coverage < 0.1, "diagnostic must detect a missing leaf");
+  await page.evaluate(() => { window.setVerificationLeafVisible(true); window.setVerificationWaterVisible(true); window.advanceTime(0); });
   for (const view of (
     process.env.LEAF_OPTICS_VIEWS || "inspection,gameplay,edge,turbulent"
   )

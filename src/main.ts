@@ -553,6 +553,7 @@ if (manual)
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
+    setVerificationLeafVisible: (visible: boolean) => { leaf.visible = visible; },
     setVerificationWaterVisible: (visible: boolean) => {
       optics.mesh.visible = visible;
     },
