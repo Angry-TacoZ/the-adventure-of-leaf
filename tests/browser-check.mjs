@@ -1,6 +1,7 @@
 import { compareLeafSilhouette } from "./leaf-silhouette.mjs";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 const browser = await chromium.launch({
   headless: true,
   args: ["--use-angle=swiftshader", "--enable-webgl"],
@@ -183,26 +184,61 @@ assert.notDeepEqual(submersionImages[0], submersionImages[1]);
 assert.notDeepEqual(submersionImages[1], submersionImages[2]);
 await leafPage.evaluate(() => window.clearLeafSubmersion());
 await leafPage.keyboard.press("r");
-for (let level = 0; level < 4; level++) {
+// 5G adaptation: this branch has no opening-tree fixture yet (5D), so the
+// full-route run restarts afloat at the headwaters with R instead of
+// ?testMode=manual&opening. Menu/phase asserts stay with 5F/5D.
+// One tap raises wind level 0 → 1; gentle corrections hold the lane for two laps.
+for (let level = 0; level < 1; level++) {
   await leafPage.keyboard.down("e");
   await leafPage.evaluate(() => window.advanceTime(20));
   await leafPage.keyboard.up("e");
   await leafPage.evaluate(() => window.advanceTime(20));
 }
-// The player must establish a safe lane again after every testing lap.
+// The test player maintains its lane with gentle analog wind and feedback.
+// Low graphics bounds CI compositing cost over 1,200 simulated seconds; the
+// optics above and separate production-RAF suite retain their original resolutions.
+// This driver is test-only; gameplay has no automatic upstream steering.
+const corrections = { left: 0, right: 0 };
+const visited = new Set();
+let firstLapResources;
+await leafPage.locator("#quality").evaluate((control) => {
+  control.value = "0.5"; control.dispatchEvent(new Event("change"));
+});
+await leafPage.evaluate(() => {
+  window.journeyPad = { connected: true, mapping: "standard", axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ value: 0 })) };
+  Object.defineProperty(navigator, "getGamepads", { value: () => [window.journeyPad] });
+});
 for (let i = 0; i < 300; i++) {
   const pose = await leafPage.evaluate(() =>
     JSON.parse(window.render_game_to_text()),
   );
-  if (pose.z > -6 && pose.x < 2.7) await leafPage.keyboard.down("d");
-  else await leafPage.keyboard.up("d");
-  await leafPage.evaluate(() => window.advanceTime(1000));
+  visited.add(pose.journey.id);
+  if (pose.laps >= 1) firstLapResources ??= pose.resources;
+  const axis = pose.x < 1.8 ? 1 : pose.x < 2.6 ? 0.4 : pose.x > 3 ? -0.4 : 0;
+  if (axis > 0) corrections.right++;
+  if (axis < 0) corrections.left++;
+  await leafPage.evaluate((axis) => { window.journeyPad.axes[0] = axis; window.advanceTime(4000); }, axis);
 }
-await leafPage.keyboard.up("d");
 const looped = await leafPage.evaluate(() =>
   JSON.parse(window.render_game_to_text()),
 );
-assert.ok(looped.laps >= 2, `expected repeated laps, got ${looped.laps}`);
+assert.ok(looped.laps >= 2, `expected repeated laps, got ${looped.laps} at ${looped.x},${looped.z}`);
+assert.ok(corrections.left > 0 && corrections.right > 0, "test player did not correct its lane in both directions");
+for (const stage of ["headwaters", "rapids", "lake", "valley", "lowlands", "estuary", "ocean"])
+  assert.ok(visited.has(stage), `test player did not render ${stage}`);
+// Each tear adds fragment display buffers mid-lap, so the leak check compares
+// two clean lap boundaries: the first ocean reset against a forced restart.
+await leafPage.keyboard.press("r");
+await leafPage.evaluate(() => window.advanceTime(500));
+const cleaned = await leafPage.evaluate(() => JSON.parse(window.render_game_to_text()));
+assert.ok(cleaned.resources.geometries <= firstLapResources.geometries + 1, "geometry grew after the first complete journey");
+assert.ok(cleaned.resources.textures <= firstLapResources.textures + 2, "textures grew after the first complete journey");
+await writeFile("output/web-game/journey-laps.json", JSON.stringify({
+  stages: [...visited], laps: looped.laps, corrections, time: looped.time,
+  firstLapResources, finalResources: looped.resources, resetResources: cleaned.resources,
+  backend: looped.renderer, quality: 0.5, viewport: [1280, 720], physics: looped.physics,
+}, null, 2));
 assert.ok(
   Math.abs(looped.camera.z - looped.z - 0.65) < 1,
   "camera did not follow loop",
