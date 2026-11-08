@@ -16,6 +16,9 @@ try {
   const start = await read();
   assert.equal(start.opening.phase, "falling"); assert.ok(start.y > 2.5);
   assert.ok(Math.abs(start.x) < 1, "opening bypasses the first steering hazard");
+  await page.locator("#quality").evaluate((control) => { control.value = "0.5"; control.dispatchEvent(new Event("change")); });
+  assert.equal((await read()).forest.openingVisible, true, "low quality must retain the opening tree");
+  await page.locator("#quality").evaluate((control) => { control.value = "1"; control.dispatchEvent(new Event("change")); });
   await page.evaluate(() => { window.setVerificationForestVisible(false); window.advanceTime(0); });
   const reference = await page.screenshot();
   await page.evaluate(() => { window.setVerificationForestVisible(true); window.advanceTime(0); });

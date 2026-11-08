@@ -40,16 +40,17 @@ export function createForest() {
   leafMaterial.positionNode = position;
   const geometries: THREE.BufferGeometry[] = [];
   const batches: { trunk: THREE.InstancedMesh; crown: THREE.InstancedMesh;
-    roots: { matrix: THREE.Matrix4; z: number; slot: number }[] }[] = [];
+    roots: { matrix: THREE.Matrix4; z: number; slot: number; opening?: boolean }[] }[] = [];
   const rng = new Rng("headwaters-forest-placement");
   const matrix = new THREE.Matrix4();
   let opening: THREE.Vector3 | undefined, openingScore = Infinity;
+  let selectedRoot: { opening?: boolean } | undefined;
   let openingCanopy: THREE.BufferGeometry | undefined, openingLocal: THREE.Vector3 | undefined;
   const candidate = new THREE.Vector3();
   for (let variant = 0; variant < 3; variant++) {
     const { wood, foliage } = createBirchGeometry(`yellow-birch-${variant}`);
     geometries.push(wood, foliage);
-    const roots: { matrix: THREE.Matrix4; z: number; slot: number }[] = [];
+    const roots: { matrix: THREE.Matrix4; z: number; slot: number; opening?: boolean }[] = [];
     for (let section = 0; section < 4; section++) {
       for (let i = 0; i < 4; i++) {
         const side = i % 2 ? -1 : 1;
@@ -62,7 +63,8 @@ export function createForest() {
         matrix.makeScale(scale * (openingTree ? 1.5 : 1), scale, scale);
         // Bury the root flare below both sides of the local slope.
         matrix.setPosition(x, bankHeight(x, z) - 0.22, z);
-        roots.push({ matrix: matrix.clone(), z, slot: i });
+        const root = { matrix: matrix.clone(), z, slot: i, opening: false };
+        roots.push(root);
         if (z > -8 && z < 18) {
           const blades = foliage.getAttribute("position");
           for (let vertex = 6; vertex < blades.count; vertex += 7) {
@@ -70,6 +72,8 @@ export function createForest() {
             if (Math.abs(candidate.x) > 3.3 || candidate.z < 0 || candidate.z > 8 || candidate.y < 2.5 || candidate.y > 8) continue;
             const score = Math.abs(candidate.x) + Math.abs(candidate.z - 3) * 0.3 + Math.abs(candidate.y - 4) * 0.05;
             if (score < openingScore) {
+              if (selectedRoot) selectedRoot.opening = false;
+              root.opening = true; selectedRoot = root;
               openingScore = score; opening = candidate.clone();
               openingCanopy = foliage;
               openingLocal = new THREE.Vector3().fromBufferAttribute(blades, vertex);
@@ -97,7 +101,7 @@ export function createForest() {
     openingCanopy.setIndex([...tiers[0], ...tiers[1]]);
     openingCanopy.userData.lowDetailIndexCount = tiers[0].length;
   }
-  let quality = NaN, cell = NaN;
+  let quality = NaN, cell = NaN, openingVisible = false;
   return {
     group,
     opening: opening ? { x: opening.x, y: opening.y + 0.03, z: opening.z } : undefined,
@@ -109,13 +113,15 @@ export function createForest() {
       if (quality !== nextQuality || cell !== nextCell) {
         quality = nextQuality;
         cell = nextCell;
+        openingVisible = false;
         for (const { trunk, crown, roots } of batches) {
           crown.geometry.setDrawRange(0, quality < 0.75 ? crown.geometry.userData.lowDetailIndexCount : Infinity);
           let count = 0;
           for (const root of roots) {
             // Cull beyond opaque fog; low quality keeps paired banks throughout.
-            if (Math.abs(root.z - cell * 8) > 75 || (quality < 0.75 && root.slot >= 2)) continue;
+            if (Math.abs(root.z - cell * 8) > 75 || (quality < 0.75 && root.slot >= 2 && !root.opening)) continue;
             trunk.setMatrixAt(count, root.matrix); crown.setMatrixAt(count, root.matrix); count++;
+            if (root.opening) openingVisible = true;
           }
           for (const mesh of [trunk, crown]) {
             mesh.count = count;
@@ -125,7 +131,7 @@ export function createForest() {
         }
       }
     },
-    diagnostics: () => ({ species: "Betula alleghaniensis", variants: 3,
+    diagnostics: () => ({ openingVisible, species: "Betula alleghaniensis", variants: 3,
       totalTrees: 48, trees: batches.reduce((n, batch) => n + batch.trunk.count, 0),
       leafTriangles: batches.reduce((n, batch) => n + batch.crown.count *
         Math.min(batch.crown.geometry.drawRange.count, batch.crown.geometry.index!.count) / 3, 0),
