@@ -19,6 +19,10 @@ try {
   const read = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
   const initial = await read();
   assert.equal(initial.renderer, native ? "WebGPU" : "WebGL2");
+  await page.waitForTimeout(300);
+  const idle = await read();
+  await page.waitForTimeout(300);
+  assert.equal((await read()).waterOptics.captures, idle.waterOptics.captures, "manual mode must not redraw while idle");
   assert.equal(initial.forest.totalTrees, 48);
   assert.equal(initial.forest.variants, 3);
   assert.equal(initial.forest.species, "Betula alleghaniensis");
