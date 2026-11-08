@@ -1,4 +1,4 @@
-import { createGrindMeter } from "./leaf-integrity";
+import { triangleArea, retainedFraction, createGrindMeter } from "./leaf-integrity";
 import { createLeafTopology } from "./leaf-topology";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
@@ -53,6 +53,26 @@ export async function createRiverLeaf() {
     rest = new Float32Array(positions);
 
   const topology = createLeafTopology(rest);
+  // Rest-material area per body, extracted from PR #5 (commit 3a9473f).
+  // The primary fragment is the largest by rest area, never by particle
+  // count: equal-count fragments can hold very different material.
+  const originalArea = triangleArea(rest, indices);
+  const areaCache = new Map<number, { revision: number; area: number }>();
+  function materialArea(body: Rapier.SoftBody) {
+    const revision = body.topologyVersion(), cached = areaCache.get(body.handle);
+    if (cached?.revision === revision) return cached.area;
+    const points = new Float32Array(body.numParticles() * 3);
+    for (let i = 0; i < body.numParticles(); i++) {
+      const p = body.particleRestPosition(i); points.set([p.x, p.y, p.z], i * 3);
+    }
+    const area = triangleArea(points, body.boundary());
+    areaCache.set(body.handle, { revision, area });
+    return area;
+  }
+  function primaryBody() {
+    return bodies.reduce<Rapier.SoftBody | undefined>((largest, body) =>
+      !largest || materialArea(body) > materialArea(largest) ? body : largest, undefined);
+  }
   let bodies: Rapier.SoftBody[] = [];
   const material = R.SoftBodyMaterial.uniform(30, 1);
   material.tearStrain = 0.08;
@@ -76,6 +96,7 @@ export async function createRiverLeaf() {
     topology.clear();
     grind.reset();
     misses = 0;
+    areaCache.clear();
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
     if (!desc) throw Error("Rapier leaf triangulation failed");
     bodies = [
@@ -102,10 +123,8 @@ export async function createRiverLeaf() {
     // contact rather than engine tear load. Shares the tear counting with
     // the verification hook. Returns true on a real split; a null cut is a
     // miss the caller records without resetting the meter.
-    if (!bodies.length) return false;
-    const body = bodies.reduce((a, b) =>
-      a.numParticles() >= b.numParticles() ? a : b,
-    );
+    const body = primaryBody();
+    if (!body) return false;
     const event = world.cutSoftBody(body, [
       { x: px - 2, y: py - 2, z: pz },
       { x: px + 2, y: py - 2, z: pz },
@@ -122,6 +141,8 @@ export async function createRiverLeaf() {
   function sync() {
     bodies = world.softBodies.getAll();
     topology.prune(new Set(bodies.map((b) => b.handle)));
+    const active = new Set(bodies.map((b) => b.handle));
+    for (const handle of areaCache.keys()) if (!active.has(handle)) areaCache.delete(handle);
   }
   return {
     world,
@@ -159,10 +180,8 @@ export async function createRiverLeaf() {
         tears++;
       });
       sync();
-      if (!bodies.length) { lastStepMs = performance.now() - started; return; }
-      const primary = bodies.reduce((a, b) =>
-        a.numParticles() >= b.numParticles() ? a : b,
-      );
+      const primary = primaryBody();
+      if (!primary) { lastStepMs = performance.now() - started; return; }
       let x = 0,
         y = 0,
         z = 0,
@@ -236,10 +255,8 @@ export async function createRiverLeaf() {
     },
     forceTear() {
       // Verification-only caller: cut across the middle using engine topology, not duplicated meshes.
-      if (!bodies.length) return 0;
-      const body = bodies.reduce((a, b) =>
-        a.numParticles() >= b.numParticles() ? a : b,
-      );
+      const body = primaryBody();
+      if (!body) return 0;
       let x = 0,
         y = 0,
         z = 0;
@@ -273,6 +290,7 @@ export async function createRiverLeaf() {
         fragments: bodies.length,
         tears,
         misses,
+        integrity: retainedFraction(bodies.map(materialArea), originalArea),
         grind: grind.fraction(),
         stepMs: lastStepMs,
       };

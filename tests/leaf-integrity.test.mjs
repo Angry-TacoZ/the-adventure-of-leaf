@@ -1,6 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createGrindMeter } from "../src/leaf-integrity.ts";
+import { triangleArea, retainedFraction, createGrindMeter } from "../src/leaf-integrity.ts";
+
+test("material area uses rest space and the largest piece wins", () => {
+  const square = [0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1];
+  const tris = [0, 1, 2, 0, 2, 3];
+  assert.equal(triangleArea(square, tris), 1);
+  assert.equal(retainedFraction([0.7, 0.1], 1), 0.7);
+  assert.equal(retainedFraction([], 1), 0);
+  assert.equal(retainedFraction([0.5], 0), 0);
+});
 
 test("grind meter tears after sustained contact and forgives taps", () => {
   const meter = createGrindMeter(0.6, 0.15);

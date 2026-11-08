@@ -23,6 +23,7 @@ try {
       const gentle = leaf.diagnostics();
       const before = leaf.readFrame().fragments.map((f) => f.id);
       const cut = leaf.forceTear();
+      const integrityAfterCut = leaf.diagnostics().integrity;
       const frames = leaf.readFrame().fragments;
       const ids = frames.map((f) => f.id),
         triangles = frames.map((f) => f.indices.length / 3);
@@ -107,6 +108,7 @@ try {
         upstreamZ,
         ram,
         flank,
+        integrityAfterCut,
         stressDamage,
       };
     } finally {
@@ -131,6 +133,14 @@ try {
     `lateral grinding tore ${result.flank.tears} times`,
   );
   assert.equal(result.flank.misses, 0, "every lateral meter fire cut");
+  assert.ok(
+    result.integrityAfterCut > 0.3 && result.integrityAfterCut < 0.7,
+    `primary holds about half the material after one cut, got ${result.integrityAfterCut}`,
+  );
+  assert.ok(
+    result.flank.integrity < result.ram.integrity,
+    "repeated tears strictly shrink the primary fragment",
+  );
   assert.ok(
     result.stressDamage.tears > 0,
     "concentrated stress should trigger engine tearing",
