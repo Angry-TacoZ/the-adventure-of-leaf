@@ -14,3 +14,7 @@ The journey begins in an Appalachian mountain forest and follows the river to an
 James removed automatic upstream obstacle avoidance: the player directs wind to navigate rocks. Physical contacts can still deflect the leaf, and downstream wake turbulence can remain. Prior tests requiring unattended passage through every rock are superseded by this explicit gameplay decision.
 
 James authorizes milestone development previews on GitHub Pages while PRs remain drafts. Previews show a revision label and are not merge/readiness claims. Main remains protected by the normal PR workflow; deployments may use the explicitly allowed development branch.
+
+## Confirmed damage ending (November 4, 2026)
+
+End the adventure when the largest remaining leaf fragment is below 25% of the original leaf. Measure retained material area rather than duplicated particle count. Show: "The adventure of Leaf has ended, try again?" Offer restart from the headwaters or return to the main menu.

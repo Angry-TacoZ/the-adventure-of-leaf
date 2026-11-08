@@ -23,3 +23,5 @@ Hero-art milestone: James approved the new yellow-birch surface art. The blade u
 
 Forest split: procedural birches and wind sway are provisional scenery. Full journey and regional ecosystem acceptance remain outstanding.
 
+Opening split: physical canopy fall, daytime sky and brook trout are integrated provisionally; the complete journey and later weather remain separate.
+
