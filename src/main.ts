@@ -534,6 +534,19 @@ window.render_game_to_text = () =>
       surface(1, -4, state.time, p, state),
     ],
   });
+if (manual) {
+  const diagnostic = new THREE.MeshBasicNodeMaterial({ color: 0xff00ff, side: THREE.DoubleSide, toneMapped: false });
+  const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  onFinalPageHide(() => diagnostic.dispose());
+  Object.assign(window, { setVerificationLeafDiagnostic: (enabled: boolean) => {
+    leaf.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      if (enabled) { if (!originals.has(object)) originals.set(object, object.material); object.material = diagnostic; }
+      else { const original = originals.get(object); if (original) object.material = original; }
+    });
+    if (!enabled) originals.clear();
+  } });
+}
 if (manual)
   Object.assign(window, {
     forceLeafTear: () => physics.forceTear(),

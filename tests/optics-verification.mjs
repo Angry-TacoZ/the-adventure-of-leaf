@@ -1,4 +1,4 @@
-import { compareLeafSilhouette } from "./leaf-silhouette.mjs";
+import { compareDiagnosticLeaf } from "./leaf-diagnostic.mjs";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -34,7 +34,7 @@ try {
     ),
     native ? "WebGPU" : "WebGL2",
   );
-  await page.evaluate(() => window.advanceTime(3000));
+  await page.evaluate(() => { window.advanceTime(3000); window.setVerificationLeafDiagnostic(true); });
   for (const view of (
     process.env.LEAF_OPTICS_VIEWS || "inspection,gameplay,edge,turbulent"
   )
@@ -77,7 +77,7 @@ try {
         window.advanceTime(0);
       });
       const actual = await page.screenshot();
-      const metrics = await compareLeafSilhouette(page, reference, actual);
+      const metrics = await compareDiagnosticLeaf(page, reference, actual);
       results.push({ view, offset, ...metrics });
       console.log(results.at(-1));
       if (
@@ -86,7 +86,10 @@ try {
           metrics.area <= 0.65 ||
           metrics.area >= 1.4)
       )
-        await writeFile(`${outputDirectory}/failed.png`, actual);
+        {
+          await writeFile(`${outputDirectory}/failed.png`, actual);
+          await writeFile(`${outputDirectory}/failed-reference.png`, reference);
+        }
       assert.ok(metrics.reference > 500, "reference leaf outside test region");
       if (metrics.reference > 500) {
         assert.ok(
