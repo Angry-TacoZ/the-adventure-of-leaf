@@ -69,17 +69,19 @@ try {
         if (leaf.diagnostics().tears > 0) break;
       }
       const ram = { ...leaf.diagnostics(), steps: ramSteps };
-      // Sustained lateral contact: pass 0.5 m off-centre while wind pins the
-      // leaf against the rock flank, and expect repeated tears.
+      // Sustained lateral contact: start with the leaf edge touching the
+      // rock flank and hold it there with gentle wind while the current
+      // drags it down the flank, and expect repeated tears. A hard pin
+      // blows the leaf past the rock before grinding starts.
       leaf.reset();
       Object.assign(state, initial(), { windLevel: 4, intensity: 1 });
       const flankBody = leaf.world.softBodies.getAll()[0];
       for (let i = 0; i < flankBody.numParticles(); i++) {
         const v = flankBody.particlePosition(i);
-        flankBody.setParticlePosition(i, { x: v.x + 0.75, y: v.y, z: v.z - 5 });
+        flankBody.setParticlePosition(i, { x: v.x + 1.4, y: v.y, z: v.z - 5 });
       }
       for (let i = 0; i < 2400; i++) {
-        updateWind(state, defaults, { x: -1, z: 0, raise: 0, lower: 0 }, 1 / 120);
+        updateWind(state, defaults, { x: -0.15, z: 0, raise: 0, lower: 0 }, 1 / 120);
         leaf.step(state, defaults);
       }
       const flank = { ...leaf.diagnostics() };
