@@ -1,8 +1,8 @@
+import { onFinalPageHide } from "./lifecycle";
 import { createBankMeshes } from "./bank-view";
 import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
 import { createUnderstory } from "./understory";
 import { createLeafView } from "./leaf-view";
-import { onFinalPageHide } from "./lifecycle";
 import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
@@ -151,7 +151,7 @@ shoreTexture.wrapS = shoreTexture.wrapT = THREE.RepeatWrapping;
 shoreTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
 const banks = createBankMeshes(shoreTexture);
 for (const mesh of banks.meshes) scene.add(mesh);
-window.addEventListener("pagehide", () => banks.dispose(), { once: true });
+onFinalPageHide(() => banks.dispose());
 const rockTexture = new THREE.TextureLoader().load(
   `${import.meta.env.BASE_URL}assets/coast-sand-rocks-diffuse.jpg`,
 );
@@ -214,8 +214,11 @@ const comparisonPlants =
     import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") &&
   new URLSearchParams(location.search).get("understory") === "compare";
 const understory = await createUnderstory(comparisonPlants);
+if (understory.diagnostics().failedSpecies.length)
+  document.querySelector("#error")!.textContent =
+    "Some shoreline plants could not load. You can keep playing; reload to retry.";
 scene.add(understory.group);
-window.addEventListener("pagehide", () => understory.dispose(), { once: true });
+onFinalPageHide(() => understory.dispose());
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -284,6 +287,9 @@ function updateWindStreaks() {
   streakGeometry.attributes.position.needsUpdate = true;
 }
 const clock = new THREE.Clock();
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) clock.start();
+});
 let accumulator = 0,
   lastRender = 0,
   frameMs = 16,
