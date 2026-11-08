@@ -61,32 +61,48 @@ never runs in gameplay), upstream avoidance (none exists), tunnelling
 
 `src/leaf-integrity.ts` (`createGrindMeter`) + wiring in `src/river-leaf.ts`:
 
-- Each step measures leaf-edge to nearest rock-surface gap.
-- Gap under 0.15 m fills the meter; clear water drains it twice as fast,
-  so taps are forgiven.
-- 0.6 s of sustained grinding cuts the primary body at the rock-side
-  surface point through the existing `world.cutSoftBody()` path.
+- Each step measures true clearance: the nearest leaf particle to the
+  nearest rock surface, with far rocks skipped by centroid distance.
+- Clearance under 0.15 m fills the meter; clear water drains it twice as
+  fast, so taps are forgiven.
+- 0.6 s of sustained grinding cuts the primary body at the nearest
+  particle's position, clamped to ±0.3 m of the centroid so the triangle
+  always intersects the 0.89 m leaf, even head-on.
+- The meter never resets on a null cut. Misses are counted in diagnostics
+  instead, and every meter fire must produce a real split.
 - Same tear counter, same sound trigger, same diagnostics as engine tears.
 
-Two live-playtest lessons folded into the shipped values:
+Three fixes the live build forced, in order:
 
-- Edge, not centre: the first version measured from the leaf centre, so a
-  leaf parked edge-on (centre ~0.4 m off the rock) read as "no contact."
-  Gap now subtracts `LEAF_HALF = 0.45`.
+- Thresholds were innocent: 0.08/0.01 still tore nothing (see attempts).
+- Edge, not centre: the first grind version measured from the leaf
+  centre, so a leaf parked edge-on (centre ~0.4 m off the rock) read as
+  "no contact." An edge offset fixed that, then the nearest-particle
+  gate replaced the offset with true clearance.
+- Head-on misses: the cut triangle sat at the rock-surface point, past
+  the leaf's half-length on dead-centre rams, so `cutSoftBody` returned
+  null (8 fires, 1 tear in the verified repro). Clamping the plane to
+  the leaf plus no-reset-on-miss fixed it.
 - Pause freezes everything: physics only steps while unpaused, so
   parked-while-paused time counts for nothing.
 
 ## Verification
 
-- Unit: grind meter test (fires once per budget, forgives taps, overlap
-  counts) alongside the existing suite.
-- Live playtest on the Pages build: leaf ground against the first rock,
-  meter climbed, tear sound, visible split fragments, and the adventure
-  ended once the largest piece dropped below a quarter. Screenshots kept
-  with the jam notes.
+- Unit: grind meter tests (fire-and-hold until reset, taps forgiven,
+  overlap counts, non-positive dt ignored, zero budget sane) alongside
+  the existing suite.
+- Browser: head-on ram tears within a bounded time, lateral flank
+  grinding tears repeatedly, and both assert zero missed cuts
+  (`tests/rapier-damage-browser.mjs`).
+- Live playtest on the PR #5 Pages build (which has menus): leaf ground
+  against the first rock, meter climbed, tear sound, visible split
+  fragments, and the adventure ended once the largest piece dropped
+  below a quarter. Screenshots kept with the jam notes. Note: this
+  branch (PR #6) has no menus and no ending screen; the ending was
+  observed on the PR #5 build only.
 
 ## Knobs for tuning
 
-Budget (seconds of contact per tear) and margin (metres) in one line of
-`src/river-leaf.ts`. The on-screen diagnostics show live
-`grind % · tears N`, so tuning takes one playtest per setting.
+Budget (seconds of contact per tear) and margin (metres of true
+clearance) in one line of `src/river-leaf.ts`. The on-screen diagnostics
+show live `grind % · tears N`, so tuning takes one playtest per setting.

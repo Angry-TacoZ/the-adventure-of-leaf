@@ -4,13 +4,13 @@ The active objective is a leaf falling from a tree in Appalachian mountain headw
 
 James's decisions:
 - Navigation is player-directed wind; remove upstream obstacle avoidance forces. Contact may physically deflect the blade and downstream wake turbulence remains.
-- Game over: "The adventure of Leaf has ended, try again?" with restart from headwaters or return to main menu.
+- Game over: "The adventure of Leaf has ended, try again?" with restart from headwaters or return to main menu (design requirement; no ending code exists on this branch — see Remaining).
 - Publish labeled milestone previews to Pages from the draft branch, retaining normal PR and built-in Codex review checkpoints.
 
 Implemented in the current physics milestone:
 - Gameplay uses a 51-particle Rapier blade on the existing 120 Hz clock, with sampled supported-area buoyancy, current drag and wind forces.
 - Rendered geometry and central vein follow particle positions. Independent display buffers, topology revisions, per-piece IDs, normals and disposal are handled by leaf-view.ts; leaf-topology.ts rebuilds particle/UV mappings from engine rest positions and boundary triangles after tears.
-- Actual material strain/force thresholds enable physical damage; automatic tear events are counted. A development-only cut hook splits the engine body into independent fragments, each receiving environmental forces.
+- Rock damage is a gameplay rule presented through the physical cut path, not engine-computed damage: sustained rock contact fills a grind meter that splits the engine body via world.cutSoftBody, and automatic tear events are counted. Lenient material strain/force thresholds (0.08/0.01) remain only as a backstop. A development-only cut hook splits the engine body into independent fragments, each receiving environmental forces.
 - Reset removes all fragments and recreates the leaf. The temporary lap loop remains for slice testing.
 - The initial birch blade has a pointed oval profile and small serrations. This is a procedural prototype, not final art.
 
