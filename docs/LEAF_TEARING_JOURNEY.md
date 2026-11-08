@@ -65,11 +65,14 @@ never runs in gameplay), upstream avoidance (none exists), tunnelling
   nearest rock surface, with far rocks skipped by centroid distance.
 - Clearance under 0.15 m fills the meter; clear water drains it twice as
   fast, so taps are forgiven.
-- 0.6 s of sustained grinding cuts the primary body at the nearest
-  particle's position, clamped to ±0.3 m of the centroid so the triangle
-  always intersects the 0.89 m leaf, even head-on.
+- 0.6 s of sustained grinding cuts the primary body halfway between the
+  centroid and the nearest particle (±0.15 m): strictly inside the leaf
+  for any non-degenerate fragment, so the triangle cannot sit tangent
+  past a tip, even head-on.
 - The meter never resets on a null cut. Misses are counted in diagnostics
-  instead, and every meter fire must produce a real split.
+  instead, and every meter fire must produce a real split. Below
+  8 particles the leaf is already destroyed, so grinding pauses with no
+  miss and no reset.
 - Same tear counter, same sound trigger, same diagnostics as engine tears.
 
 Three fixes the live build forced, in order:
@@ -81,8 +84,13 @@ Three fixes the live build forced, in order:
   gate replaced the offset with true clearance.
 - Head-on misses: the cut triangle sat at the rock-surface point, past
   the leaf's half-length on dead-centre rams, so `cutSoftBody` returned
-  null (8 fires, 1 tear in the verified repro). Clamping the plane to
-  the leaf plus no-reset-on-miss fixed it.
+  null (8 fires, 1 tear in the verified repro). Interior placement plus
+  no-reset-on-miss fixed it — and the lateral test then showed late cuts
+  missing shrunken fragments (243 misses), which the interior midpoint
+  and the 8-particle floor fixed.
+- Test-pin lesson: the first lateral test pinned the leaf with full wind
+  and blew it past the rock for zero tears. Starting edge-on with a
+  gentle hold sustains the grind.
 - Pause freezes everything: physics only steps while unpaused, so
   parked-while-paused time counts for nothing.
 
