@@ -1,3 +1,4 @@
+import { compareLeafSilhouette } from "./leaf-silhouette.mjs";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 const browser = await chromium.launch({
@@ -149,60 +150,55 @@ for (const [name, offset, pitch] of [
   await leafPage.evaluate(
     ([offset, pitch]) => {
       window.setLeafSubmersion(offset, pitch);
+      window.setVerificationWaterVisible(false);
       window.advanceTime(0);
     },
     [offset, pitch],
   );
+  const reference = await leafPage.screenshot();
+  await leafPage.evaluate(() => {
+    window.setVerificationWaterVisible(true);
+    window.advanceTime(0);
+  });
   submersionImages.push(
     await leafPage.screenshot({ path: `output/web-game/leaf-${name}.png` }),
   );
-  const silhouette = await leafPage.evaluate(async (encoded) => {
-    const image = new Image();
-    image.src = `data:image/png;base64,${encoded}`;
-    await image.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(image, 0, 0);
-    const pixels = ctx.getImageData(400, 180, 480, 400).data;
-    let count = 0,
-      minX = 480,
-      maxX = 0,
-      minY = 400,
-      maxY = 0;
-    for (let y = 0; y < 400; y++)
-      for (let x = 0; x < 480; x++) {
-        const i = (y * 480 + x) * 4;
-        if (
-          pixels[i] > 90 &&
-          pixels[i + 1] > 85 &&
-          pixels[i + 2] < pixels[i] * 0.45 &&
-          pixels[i + 2] < pixels[i + 1] * 0.45
-        ) {
-          count++;
-          minX = Math.min(minX, x);
-          maxX = Math.max(maxX, x);
-          minY = Math.min(minY, y);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    return {
-      count,
-      fill: count / Math.max(1, (maxX - minX + 1) * (maxY - minY + 1)),
-    };
-  }, submersionImages.at(-1).toString("base64"));
+  const silhouette = await compareLeafSilhouette(
+    leafPage,
+    reference,
+    submersionImages.at(-1),
+  );
   assert.ok(
-    silhouette.count > 1000 && silhouette.fill > 0.45,
-    `${name}: missing/fragmented leaf ${JSON.stringify(silhouette)}`,
+    silhouette.reference > 1000,
+    name + ": inadequate unobstructed reference",
+  );
+  assert.ok(
+    silhouette.coverage > 0.85 &&
+      silhouette.area > 0.65 &&
+      silhouette.area < 1.4,
+    name + ": missing or ghosted leaf " + JSON.stringify(silhouette),
   );
 }
 assert.notDeepEqual(submersionImages[0], submersionImages[1]);
 assert.notDeepEqual(submersionImages[1], submersionImages[2]);
-await leafPage.evaluate(() => {
-  window.clearLeafSubmersion();
-  window.advanceTime(150000);
-});
+await leafPage.evaluate(() => window.clearLeafSubmersion());
+await leafPage.keyboard.press("r");
+for (let level = 0; level < 4; level++) {
+  await leafPage.keyboard.down("e");
+  await leafPage.evaluate(() => window.advanceTime(20));
+  await leafPage.keyboard.up("e");
+  await leafPage.evaluate(() => window.advanceTime(20));
+}
+// The player must establish a safe lane again after every testing lap.
+for (let i = 0; i < 300; i++) {
+  const pose = await leafPage.evaluate(() =>
+    JSON.parse(window.render_game_to_text()),
+  );
+  if (pose.z > -6 && pose.x < 2.7) await leafPage.keyboard.down("d");
+  else await leafPage.keyboard.up("d");
+  await leafPage.evaluate(() => window.advanceTime(1000));
+}
+await leafPage.keyboard.up("d");
 const looped = await leafPage.evaluate(() =>
   JSON.parse(window.render_game_to_text()),
 );

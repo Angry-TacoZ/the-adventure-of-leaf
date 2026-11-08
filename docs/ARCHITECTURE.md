@@ -25,3 +25,14 @@ Wind uses five persistent selectable levels; trigger edge detection with hystere
 Depth-refraction increment: scene depth estimates the optical travel for a projected Snell ray. Bounded UV displacement, viewportSafeUV foreground rejection, a depth-discontinuity continuity weight and viewport-edge fading select the scene-color sample. Beer-Lambert transmission uses a tunable RGB absorption coefficient. This remains a one-step screen-space approximation, not ray tracing. `physics-boundary.ts` adapts shared sampling and supplies renderer-independent pose/fragment data types. Main consumes its slopes and pose with the same 120 Hz clock. Fragment buffer upload is future work; see RAPIER_INTEGRATION_PLAN.md.
 
 Verification-only hooks in development manual mode can hide water for an unobstructed leaf reference and select inspection, gameplay or edge test camera framing. Gameplay test framing explicitly resets both camera position and aim even at zero elapsed time. Read-only resource diagnostics report Three.js counters; they do not expose driver-level memory allocations. None of these setters is exposed by the production build.
+
+## Module boundaries for diagnosis
+
+- `simulation.ts`: shared wind state and river sampling; the legacy solver remains only for historical unit coverage. Gameplay uses `updateWind` and the Rapier owner.
+- `river-leaf.ts`: Rapier world, forces, static contacts, reset and physical positions. No Three.js or DOM dependencies.
+- `physics-boundary.ts`: typed data exchanged between simulation and presentation.
+- `leaf-view.ts`: display buffers, normals, vein and mesh lifecycle. It copies the supplied positions and never writes into physics data. Current gameplay frames use world coordinates; arbitrary per-fragment quaternion poses are not consumed yet.
+- `water.ts`: water optical materials and captures.
+- `main.ts`: initialization, sole fixed-step clock, input collection and camera orchestration. Further environment, journey, menu and audio work should have its own module as each feature is implemented, rather than accumulating behavior here.
+
+Review checkpoints: push functional milestones to the draft PR, request built-in Codex review, check returned findings against the current revision, and compare the milestone against `DEMO_PROGRESS.md` and the original human objective. Review feedback complements runtime, visual and acceptance checks. A clean review of an increment does not establish completion of deferred requirements.

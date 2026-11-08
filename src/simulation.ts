@@ -158,29 +158,22 @@ export function current(x: number, z: number, t: number, p: Params) {
         p.turbulence * 0.25 * Math.sin(x * 3 + t)),
   );
 }
-// A local steering field approximates water splitting upstream and rejoining downstream.
-// The slight asymmetric split avoids an exact centreline stagnation point.
+// Currents carry the leaf downstream; steering around hazards belongs to the player.
+// Bounded wake turbulence is applied only after an obstacle, never as upstream avoidance.
 export function flowField(x: number, z: number, t: number, p: Params) {
   const speed = current(x, z, t, p);
-  let lateral = 0,
-    slowdown = 0;
+  let lateral = 0;
   for (const rock of obstacles) {
     const dx = x - rock.x,
       dz = z - rock.z;
-    if (Math.abs(dz) > 12) continue;
-    const approach =
-      Math.exp(-(((dz - 1.8) / 2.4) ** 2)) * Math.exp(-((dx / 1.7) ** 2));
-    const split = Math.tanh((dx - 0.15) * 3);
+    if (dz >= -rock.r || dz < -12) continue;
     const wake =
       Math.exp(-(((dz + 2) / 2.5) ** 2)) * Math.exp(-((dx / 2) ** 2));
-    lateral +=
-      speed * 0.85 * approach * split +
-      p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
-    slowdown = Math.max(slowdown, approach * 0.35);
+    lateral += p.turbulence * 0.35 * wake * Math.sin(t * 1.4 - dz * 2);
   }
-  return { x: lateral, z: -speed * (1 - slowdown) };
+  return { x: lateral, z: -speed };
 }
-export function step(
+export function updateWind(
   s: State,
   p: Params,
   input: { x: number; z: number; raise: number; lower: number },
@@ -205,6 +198,14 @@ export function step(
   // Reversing or changing wind cannot teleport an existing ripple pattern.
   s.windOffsetX += s.windX * p.windStrength * s.intensity * dt;
   s.windOffsetZ += s.windZ * p.windStrength * s.intensity * dt;
+}
+export function step(
+  s: State,
+  p: Params,
+  input: { x: number; z: number; raise: number; lower: number },
+  dt: number,
+) {
+  updateWind(s, p, input, dt);
   const flow = flowField(s.x, s.z, s.time, p);
   const wind = p.windStrength * s.intensity;
   const targetX = flow.x + s.windX * wind;
