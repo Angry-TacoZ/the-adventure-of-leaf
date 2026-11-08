@@ -1,4 +1,5 @@
 import { createLeafView } from "./leaf-view";
+import { onFinalPageHide } from "./lifecycle";
 import { createRiverLeaf } from "./river-leaf";
 import * as THREE from "three/webgpu";
 import { createRiverWater } from "./water";
@@ -99,7 +100,7 @@ const physics = await createRiverLeaf().catch((error) => {
     "Physics initialization failed. Reload the page to retry.";
   throw error;
 });
-window.addEventListener("pagehide", () => physics.dispose(), { once: true });
+onFinalPageHide(() => physics.dispose());
 camera.position.set(
   state.x,
   state.y + p.cameraHeight,
@@ -220,7 +221,7 @@ const water = optics.mesh;
 scene.add(water);
 const leafView = createLeafView();
 const leaf = leafView.group;
-window.addEventListener("pagehide", () => leafView.dispose(), { once: true });
+onFinalPageHide(() => leafView.dispose());
 scene.add(leaf);
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
