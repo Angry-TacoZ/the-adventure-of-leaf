@@ -56,6 +56,7 @@ try {
     await page.evaluate(() => typeof window.advanceTime),
     "undefined",
   );
+  assert.equal(await page.evaluate(() => typeof window.setVerificationLeafDiagnostic), "undefined");
   const settle = () =>
     page.evaluate(
       () =>
