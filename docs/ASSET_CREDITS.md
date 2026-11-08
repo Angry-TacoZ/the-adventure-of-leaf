@@ -19,4 +19,5 @@ Hero yellow-birch leaf surface: `public/assets/yellow-birch-hero-albedo.png`, or
 
 Rapier 3D (`@dimforge/rapier3d` 0.21.0), Dimforge, Apache-2.0. Its WASM and JavaScript bindings are distributed with the game; retain the dependency license. The project-authored leaf material is not a biological scan.
 
-SeedThree (SkyeShark), MIT, inspected at commit `cf2eaad39d9b7355ed086aca2a95fb785e539242` as a candidate for tree and ground-cover reuse. No SeedThree source or assets are distributed by this milestone; the inspection checkout is ignored under output/. Any later import must include its MIT notice and the provenance of selected assets rather than assuming all audio/textures share identical terms.
+SeedThree (SkyeShark), MIT, pinned at `cf2eaad39d9b7355ed086aca2a95fb785e539242`. Three generator files (`weber-penn.js`, `branch-mesh.js`, `rng.js`) are vendored with the full license; the build includes `public/licenses/SeedThree-MIT.txt`. Birch parameters, foliage geometry, bark, placement and wind presentation are project-authored with Codex assistance. No upstream editor, preset, texture or audio is included.
+

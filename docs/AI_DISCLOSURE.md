@@ -1,2 +1,4 @@
 # AI disclosure
-OpenAI Codex assisted project research, documentation and implementation. Review the actual final game and document every AI-generated asset or other AI use in the itch.io game description before submitting. The hero yellow-birch leaf albedo was generated with OpenAI image generation on November 4, 2026; it supplies visible venation, tissue detail and the source for small shader bump relief. It is a project-generated asset, not a scan or a third-party leaf photo. See ASSET_CREDITS.md.
+OpenAI Codex assisted project research, documentation and implementation. Review the final game and document all AI use in the itch.io game description. The yellow-birch leaf albedo was generated with OpenAI image generation on November 4, 2026; see ASSET_CREDITS.md.
+
+Codex assisted the project-owned birch parameters, bark, foliage geometry, placement and wind presentation using the attributed MIT SeedThree generator subset.

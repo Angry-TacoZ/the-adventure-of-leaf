@@ -36,3 +36,5 @@ Verification-only hooks in development manual mode can hide water for an unobstr
 - `main.ts`: initialization, sole fixed-step clock, input collection and camera orchestration. Further environment, journey, menu and audio work should have its own module as each feature is implemented, rather than accumulating behavior here.
 
 Review checkpoints: push functional milestones to the draft PR, request built-in Codex review, check returned findings against the current revision, and compare the milestone against `DEMO_PROGRESS.md` and the original human objective. Review feedback complements runtime, visual and acceptance checks. A clean review of an increment does not establish completion of deferred requirements.
+
+The forest owner instances procedurally generated birches with shared geometry and materials; visual wind follows the existing simulation clock. The trees are scenery and do not own leaf physics.
