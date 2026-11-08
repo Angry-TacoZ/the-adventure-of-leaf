@@ -1,4 +1,5 @@
 import { triangleArea, retainedFraction, createGrindMeter } from "./leaf-integrity";
+import { createBankData, BED_WIDTH } from "./bank-terrain";
 import { createLeafTopology } from "./leaf-topology";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
@@ -21,14 +22,17 @@ export async function createRiverLeaf() {
     world.createCollider(
       R.ColliderDesc.ball(rock.r).setTranslation(rock.x, ROCK_CENTER_Y, rock.z),
     );
-  for (const side of [-1, 1])
-    world.createCollider(
-      R.ColliderDesc.cuboid(2.5, 0.55, 65).setTranslation(
-        side * 6.7,
-        0.05,
-        -45,
-      ),
-    );
+  for (const side of [-1, 1] as const) {
+    const bank = createBankData(side);
+    world.createCollider(R.ColliderDesc.trimesh(bank.positions, bank.indices));
+  }
+  world.createCollider(
+    R.ColliderDesc.cuboid(
+      BED_WIDTH / 2,
+      0.05,
+      (river.start - river.end) / 2,
+    ).setTranslation(0, -0.46, (river.start + river.end) / 2),
+  );
   const positions: number[] = [],
     triangles: number[] = [];
   for (let row = 0; row < 17; row++) {
