@@ -65,6 +65,7 @@ export async function createRiverLeaf() {
   // centre — a leaf parked edge-on against a rock still grinds.
   const grind = createGrindMeter(0.6, 0.15);
   const LEAF_HALF = 0.45;
+  let misses = 0;
   let lastStepMs = 0,
     tears = 0;
   function reset() {
@@ -72,6 +73,7 @@ export async function createRiverLeaf() {
     for (const body of world.softBodies.getAll()) world.removeSoftBody(body);
     topology.clear();
     grind.reset();
+    misses = 0;
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
     if (!desc) throw Error("Rapier leaf triangulation failed");
     bodies = [
@@ -96,11 +98,12 @@ export async function createRiverLeaf() {
   function grindCut(px: number, py: number, pz: number) {
     // Gameplay cut at a particle-space point, driven by sustained rock
     // contact rather than engine tear load. Shares the tear counting with
-    // the verification hook.
+    // the verification hook. Returns true on a real split; a null cut is a
+    // miss the caller records without resetting the meter.
+    if (!bodies.length) return false;
     const body = bodies.reduce((a, b) =>
       a.numParticles() >= b.numParticles() ? a : b,
     );
-    if (!body) return 0;
     const event = world.cutSoftBody(body, [
       { x: px - 2, y: py - 2, z: pz },
       { x: px + 2, y: py - 2, z: pz },
@@ -110,8 +113,9 @@ export async function createRiverLeaf() {
       tears++;
       event.free();
       sync();
+      return true;
     }
-    return bodies.length;
+    return false;
   }
   function sync() {
     bodies = world.softBodies.getAll();
@@ -153,6 +157,7 @@ export async function createRiverLeaf() {
         tears++;
       });
       sync();
+      if (!bodies.length) { lastStepMs = performance.now() - started; return; }
       const primary = bodies.reduce((a, b) =>
         a.numParticles() >= b.numParticles() ? a : b,
       );
@@ -194,7 +199,14 @@ export async function createRiverLeaf() {
           contactZ = rock.z + dz * s;
         }
       }
-      if (grind.sample(gap, FIXED_STEP)) grindCut(contactX, y / n, contactZ);
+      // Clamp the cut plane to the leaf's extent: past the half-length the
+      // triangle misses the leaf and cutSoftBody returns null. A null cut is
+      // a recorded miss; the meter stays full and retries instead of resetting.
+      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, contactZ - state.z));
+      if (grind.sample(gap, FIXED_STEP)) {
+        if (grindCut(contactX, y / n, cutZ)) grind.reset();
+        else misses++;
+      }
       if (state.z < river.stop) {
         reset();
         state.x = 0;
@@ -211,6 +223,7 @@ export async function createRiverLeaf() {
     },
     forceTear() {
       // Verification-only caller: cut across the middle using engine topology, not duplicated meshes.
+      if (!bodies.length) return 0;
       const body = bodies.reduce((a, b) =>
         a.numParticles() >= b.numParticles() ? a : b,
       );
@@ -246,6 +259,7 @@ export async function createRiverLeaf() {
         constraints: bodies.reduce((n, b) => n + b.numEdges(), 0),
         fragments: bodies.length,
         tears,
+        misses,
         grind: grind.fraction(),
         stepMs: lastStepMs,
       };
