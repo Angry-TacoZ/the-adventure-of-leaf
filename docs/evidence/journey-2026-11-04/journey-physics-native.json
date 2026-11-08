@@ -1,0 +1,357 @@
+{
+  "translated": [
+    {
+      "z": 0,
+      "velocity": -0.15535926731193767,
+      "stateZ": -2.875837271120034,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.10000002384185791,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -2
+        },
+        "rebases": 3
+      }
+    },
+    {
+      "z": -510,
+      "velocity": -0.15513862844775705,
+      "stateZ": -512.8754210384453,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.20000004768371582,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -512
+        },
+        "rebases": 6
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "stage": "headwaters",
+      "x": 2.6999999704022035,
+      "z": -3.762010311113366e-11,
+      "y": 0.07957429438829422,
+      "time": 0.008333333333333333,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.3999999761581421,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": 0
+        },
+        "rebases": 7
+      }
+    },
+    {
+      "stage": "rapids",
+      "x": 2.623915974269895,
+      "z": -100.00215241488289,
+      "y": 0.0609610198503908,
+      "time": 84.45000000001328,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.2999999523162842,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -99
+        },
+        "rebases": 106
+      }
+    },
+    {
+      "stage": "lake",
+      "x": 2.629299146725851,
+      "z": -190.00421154966543,
+      "y": -1.647523749108408,
+      "time": 138.62500000003826,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.40000009536743164,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -189
+        },
+        "rebases": 196
+      }
+    },
+    {
+      "stage": "valley",
+      "x": 2.601001578510976,
+      "z": -270.0097826637474,
+      "y": -1.6480077621983547,
+      "time": 232.7666666666193,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.30000007152557373,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -269
+        },
+        "rebases": 276
+      }
+    },
+    {
+      "stage": "lowlands",
+      "x": 2.6513687493096962,
+      "z": -370.00530218143086,
+      "y": -2.584006515203738,
+      "time": 310.72499999988173,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.2999999523162842,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -369
+        },
+        "rebases": 376
+      }
+    },
+    {
+      "stage": "estuary",
+      "x": 2.6826770161004627,
+      "z": -430.0058450979345,
+      "y": -2.9085119144589293,
+      "time": 360.9416666665027,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.2999999523162842,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -429
+        },
+        "rebases": 436
+      }
+    },
+    {
+      "stage": "ocean",
+      "x": 2.647417342180715,
+      "z": -510.00153433925965,
+      "y": -3.0184422380783977,
+      "time": 427.9749999997751,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.3999999761581421,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": -509
+        },
+        "rebases": 516
+      }
+    },
+    {
+      "stage": "headwaters",
+      "x": 2.7,
+      "z": 0,
+      "y": 0.08,
+      "time": 477.9999999997296,
+      "health": {
+        "engine": "Rapier",
+        "particles": 51,
+        "constraints": 114,
+        "fragments": 1,
+        "tears": 0,
+        "stepMs": 0.8000000715255737,
+        "integrity": 0.9999999885257371,
+        "origin": {
+          "x": 3,
+          "z": 0
+        },
+        "rebases": 577
+      }
+    }
+  ],
+  "state": {
+    "x": 2.7,
+    "y": 0.08,
+    "z": 0,
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "windX": 6.916016589216748e-8,
+    "windZ": 0,
+    "intensity": 0.2499999999999989,
+    "windLevel": 1,
+    "raisePressed": false,
+    "lowerPressed": false,
+    "windOffsetX": 0.5933333241694647,
+    "windOffsetZ": 0,
+    "time": 477.9999999997296,
+    "collision": false,
+    "laps": 1
+  },
+  "maxJump": 0.020739865370615007,
+  "maxStepVelocityError": 0.006284748350142269,
+  "sourceIds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "cut": [
+    {
+      "id": "leaf-0",
+      "finite": true,
+      "z": -520,
+      "ids": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        22,
+        23
+      ]
+    },
+    {
+      "id": "leaf-1",
+      "finite": true,
+      "z": -520.4450073242188,
+      "ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ]
+    }
+  ]
+}
