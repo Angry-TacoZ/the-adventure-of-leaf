@@ -1,7 +1,9 @@
 import { onFinalPageHide } from "./lifecycle";
 import { createForest } from "./forest";
 import { createBankMeshes } from "./bank-view";
-import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
+import { bankHeight, createBedData } from "./bank-terrain";
+import { journeyAt, waterLevel, waterSlope, channelHalfWidth } from "./journey";
+import { createWaterGrid } from "./water-grid";
 import { createUnderstory } from "./understory";
 import { createLeafView } from "./leaf-view";
 import { createRiverLeaf } from "./river-leaf";
@@ -28,6 +30,8 @@ if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
 }
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
+const locationLabel = document.createElement("p"); locationLabel.id = "journey-location";
+diag.before(locationLabel);
 let renderer: THREE.WebGPURenderer;
 let gameplayReady = false;
 try {
@@ -85,7 +89,7 @@ scene.fog = new THREE.Fog(0xa7c8ba, 25, 65);
 const camera = new THREE.PerspectiveCamera(
   48,
   innerWidth / innerHeight,
-  0.1,
+  0.015,
   120,
 );
 scene.add(new THREE.HemisphereLight(0xd9eff0, 0x455337, 2));
@@ -119,31 +123,22 @@ const bedTexture = new THREE.TextureLoader().load(
 );
 bedTexture.colorSpace = THREE.SRGBColorSpace;
 bedTexture.wrapS = bedTexture.wrapT = THREE.RepeatWrapping;
-const riverLength = river.start - river.end;
-const riverCenter = (river.start + river.end) / 2;
-bedTexture.repeat.set(BED_WIDTH / 2.2, riverLength / 2.2);
 bedTexture.anisotropy = Math.min(8, renderer.getMaxAnisotropy());
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(200, 200),
-  new THREE.MeshStandardMaterial({
-    color: 0x586f49,
-    roughness: 1,
-  }),
-);
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -0.42;
-ground.position.z = riverCenter;
-scene.add(ground);
+// Journey bed ribbon along the whole route; shared with Rapier's bed
+// collider. World-scale UVs replace the old repeating plane. From PR #5 (331599e).
+const bedData = createBedData(), bedGeometry = new THREE.BufferGeometry();
+bedGeometry.setAttribute("position", new THREE.BufferAttribute(bedData.positions, 3));
+bedGeometry.setAttribute("uv", new THREE.BufferAttribute(bedData.uvs, 2));
+bedGeometry.setIndex(new THREE.BufferAttribute(bedData.indices, 1));
+bedGeometry.computeVertexNormals();
 const bed = new THREE.Mesh(
-  new THREE.PlaneGeometry(BED_WIDTH, riverLength),
+  bedGeometry,
   new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: bedTexture,
     roughness: 1,
   }),
 );
-bed.rotation.x = -Math.PI / 2;
-bed.position.set(0, -0.41, riverCenter);
 scene.add(bed);
 // The supplied pebble diffuse map uses world-scale UVs for each bank face.
 const shoreTexture = new THREE.TextureLoader().load(
@@ -185,7 +180,7 @@ for (const rock of obstacles) {
     new THREE.DodecahedronGeometry(rock.r, 1),
     rockMaterial,
   );
-  mesh.position.set(rock.x, 0.32, rock.z);
+  mesh.position.set(rock.x, waterLevel(rock.z) + 0.32, rock.z);
   mesh.scale.set(1, 0.75, 1);
   scene.add(mesh);
   const foam = new THREE.Mesh(
@@ -203,10 +198,11 @@ for (const rock of obstacles) {
   scene.add(foam);
   foams.push({ mesh: foam, rock });
 }
-const geometry = new THREE.PlaneGeometry(WATER_WIDTH, riverLength, 70, 480);
-geometry.translate(0, -riverCenter, 0);
+// Fixed-allocation water grid follows the viewer down the whole route.
+const waterGrid = createWaterGrid(), geometry = waterGrid.geometry;
 const optics = createRiverWater(geometry);
 const water = optics.mesh;
+water.frustumCulled = false;
 scene.add(water);
 const leafView = createLeafView();
 let leafViewActive = true;
@@ -312,6 +308,19 @@ let accumulator = 0,
   manual =
     import.meta.env.DEV &&
     new URLSearchParams(location.search).get("testMode") === "manual";
+// Manual verification fixture: start afloat anywhere on the connected
+// route (?journeyZ= and ?journeyX=). Normal play starts at the headwaters.
+const fixtureParams = new URLSearchParams(location.search);
+const fixtureZ = manual ? Number(fixtureParams.get("journeyZ")) : NaN;
+const fixtureX = manual ? Number(fixtureParams.get("journeyX")) : NaN;
+const startZ = manual && Number.isFinite(fixtureZ) ? Math.max(river.end + 1, Math.min(river.start, fixtureZ)) : 0;
+const startX = manual && Number.isFinite(fixtureX) ? Math.max(-channelHalfWidth(startZ), Math.min(channelHalfWidth(startZ), fixtureX)) : 0;
+const spawn = { x: startX, y: waterLevel(startZ) + 0.08, z: startZ };
+if (startZ !== 0 || startX !== 0) {
+  state.x = startX; state.z = startZ;
+  camera.position.set(spawn.x, spawn.y + p.cameraHeight, spawn.z + p.cameraDistance);
+  physics.reset(spawn);
+}
 let frames = 0;
 const profiling = new URLSearchParams(location.search).has("profile");
 const samples: {
@@ -370,12 +379,22 @@ function update(dt: number) {
 }
 function render(dt: number) {
   const started = performance.now();
+  waterGrid.layout(state.x, state.z);
+  const meanLevel = waterLevel(state.z);
   const attr = geometry.attributes.position as THREE.BufferAttribute;
   const skipSurface = benchmarkMode === "no-surface";
   if (!skipSurface) {
-    for (let i = 0; i < attr.count; i++)
-      attr.setZ(i, surface(attr.getX(i), -attr.getY(i), state.time, p, state));
+    for (let row = 0; row <= waterGrid.rows; row++) {
+      const strength = waterGrid.rapids[row], level = waterGrid.levels[row];
+      const end = (row + 1) * (waterGrid.columns + 1);
+      for (let i = row * (waterGrid.columns + 1); i < end; i++) {
+        const height = surface(attr.getX(i), -attr.getY(i), state.time, p, state);
+        attr.setZ(i, height - meanLevel);
+        waterGrid.foam[i] = strength > 0 ? strength * Math.max(0, height - level - 0.035) * 8 : 0;
+      }
+    }
     attr.needsUpdate = true;
+    geometry.attributes.aFoam.needsUpdate = true;
   }
   const deformed = performance.now();
   if (!skipSurface) geometry.computeVertexNormals();
@@ -411,6 +430,7 @@ function render(dt: number) {
   const pixelRatio = Math.min(devicePixelRatio, p.quality);
   if (renderer.getPixelRatio() !== pixelRatio)
     renderer.setPixelRatio(pixelRatio);
+  optics.setSurfaceFrame(meanLevel, state.z, waterSlope(state.z), camera.position, state.time);
   optics.setQuality(p.quality);
   understory.setQuality(p.quality);
   forest.update(state.time, state.windX, state.windZ, state.intensity * p.windStrength, p.quality, state.z);
@@ -427,6 +447,8 @@ function render(dt: number) {
     if (samples.length > 600) samples.shift();
   }
   const control = input();
+  const journey = journeyAt(state.z);
+  locationLabel.textContent = `${journey.name} · ${Math.round(journey.progress * 100)}% to the Atlantic`;
   diag.textContent = `${backend} · ${Math.round(1000 / frameMs)} fps · ${frameMs.toFixed(1)} ms\nwind level ${state.windLevel + 1}/5 ${state.windLevel === 0 ? "(calm)" : ""} · current ${current(state.x, state.z, state.time, p).toFixed(2)} · wind ${state.windX.toFixed(2)}, ${state.windZ.toFixed(2)} × ${state.intensity.toFixed(2)}\nleaf velocity ${state.vx.toFixed(2)}, ${state.vz.toFixed(2)} · ${control.gamepad ? "gamepad" : "keyboard / no standard gamepad"}\nleaf damage grind ${Math.round(lastHealth.grind * 100)}% · tears ${lastHealth.tears} · integrity ${Math.round(lastHealth.integrity * 100)}%`;
 }
 let lastInterval = 0;
@@ -452,7 +474,9 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
   if (e.key.toLowerCase() === "r") {
     state = initial();
-    physics.reset();
+    state.x = spawn.x; state.z = spawn.z;
+    camera.position.set(spawn.x, spawn.y + p.cameraHeight, spawn.z + p.cameraDistance);
+    physics.reset(spawn);
     accumulator = 0;
     camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
     if (manual) render(0);
@@ -481,6 +505,8 @@ window.render_game_to_text = () =>
     obstacle,
     obstacles,
     river,
+    journey: journeyAt(state.z),
+    waterGrid: waterGrid.diagnostics(),
     renderer: backend,
     rendererEngine: "WebGPURenderer",
     benchmark: benchmarkMode
@@ -495,6 +521,8 @@ window.render_game_to_text = () =>
       x: camera.position.x,
       y: camera.position.y,
       z: camera.position.z,
+      near: camera.near,
+      waterClearance: camera.position.y - surface(camera.position.x, camera.position.z, state.time, p, state),
     },
     frames,
     manual,
@@ -513,6 +541,7 @@ if (manual)
     setVerificationWaterVisible: (visible: boolean) => {
       optics.mesh.visible = visible;
     },
+    setVerificationLeafVisible: (visible: boolean) => { leaf.visible = visible; },
     setLeafSubmersion: (offset: number, pitch = 0, view = "inspection") => {
       submersionTest = { offset, pitch, view };
     },
