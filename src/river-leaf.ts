@@ -14,9 +14,12 @@ export async function createRiverLeaf() {
   const world = new R.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = FIXED_STEP;
   const events = new R.EventQueue(true);
+  // Rock collider centre height. The grind gate measures against this same
+  // geometry (ball centre plus radius), so validation stays exact.
+  const ROCK_CENTER_Y = 0.32;
   for (const rock of obstacles)
     world.createCollider(
-      R.ColliderDesc.ball(rock.r).setTranslation(rock.x, 0.32, rock.z),
+      R.ColliderDesc.ball(rock.r).setTranslation(rock.x, ROCK_CENTER_Y, rock.z),
     );
   for (const side of [-1, 1])
     world.createCollider(
@@ -183,8 +186,10 @@ export async function createRiverLeaf() {
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
-      // Gap is true clearance: the nearest leaf particle to the nearest rock
-      // surface. Far rocks are skipped by centroid distance first so the
+      // Gap is true 3D clearance: the nearest leaf particle to the surface
+      // of the spherical rock collider at (rock.x, ROCK_CENTER_Y, rock.z).
+      // A leaf flying over a rock is vertically separated and must not
+      // grind. Far rocks are skipped by centroid distance first so the
       // per-particle scan stays local. The cut sits halfway between the
       // centroid and the nearest particle, clamped to ±0.15 m: strictly
       // inside the leaf for any non-degenerate fragment, so the triangle
@@ -194,11 +199,16 @@ export async function createRiverLeaf() {
       // grinding pauses with no miss and no reset.
       let gap = Infinity, nearX = state.x, nearZ = state.z;
       for (const rock of obstacles) {
-        const cdx = state.x - rock.x, cdz = state.z - rock.z;
-        if (Math.hypot(cdx, cdz) - rock.r > 1.0) continue;
+        const cdx = state.x - rock.x,
+          cdy = state.y - ROCK_CENTER_Y,
+          cdz = state.z - rock.z;
+        if (Math.hypot(cdx, cdy, cdz) - rock.r > 1.0) continue;
         for (let i = 0; i < primary.numParticles(); i++) {
           primary.particlePosition(i, point);
-          const d = Math.hypot(point.x - rock.x, point.z - rock.z) - rock.r;
+          const dx = point.x - rock.x,
+            dy = point.y - ROCK_CENTER_Y,
+            dz = point.z - rock.z;
+          const d = Math.hypot(dx, dy, dz) - rock.r;
           if (d < gap) { gap = d; nearX = point.x; nearZ = point.z; }
         }
       }
