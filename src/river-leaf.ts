@@ -1,4 +1,4 @@
-import { triangleArea, retainedFraction, createGrindMeter } from "./leaf-integrity";
+import { triangleArea, retainedFraction, createGrindMeter, shouldEndAdventure } from "./leaf-integrity";
 import { createBankData, BED_WIDTH } from "./bank-terrain";
 import { createLeafTopology } from "./leaf-topology";
 import { createFishPhysics } from "./fish-physics";
@@ -253,7 +253,7 @@ export async function createRiverLeaf() {
           grind.noteMiss();
         }
       }
-      if (state.z < river.stop) {
+      if (state.z < river.stop && !shouldEndAdventure(retainedFraction(bodies.map(materialArea), originalArea))) {
         reset();
         state.x = origin.x;
         state.z = origin.z;

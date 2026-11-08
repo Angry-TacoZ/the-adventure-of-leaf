@@ -69,7 +69,9 @@ await page.evaluate(() => window.advanceTime(1000));
 let neutral = await read();
 assert.equal(neutral.windLevel, 1);
 assert.ok(neutral.intensity > 0.24);
-await page.screenshot({ path: "output/web-game/controller.png" });
+// CI software compositing can exceed Playwright's default 30 s capture budget.
+// Keep the capture and all gameplay assertions, with a bounded 60 s allowance.
+await page.screenshot({ path: "output/web-game/controller.png", timeout: 60000 });
 await page.keyboard.press("r");
 for (let i = 0; i < 4; i++) {
   await page.keyboard.down("e");
@@ -182,7 +184,12 @@ for (const [name, offset, pitch] of [
 assert.notDeepEqual(submersionImages[0], submersionImages[1]);
 assert.notDeepEqual(submersionImages[1], submersionImages[2]);
 await leafPage.evaluate(() => window.clearLeafSubmersion());
-await leafPage.keyboard.press("r");
+const preLoop = await leafPage.evaluate(() => JSON.parse(window.render_game_to_text()));
+if (preLoop.menu === "lost") {
+  await leafPage.getByRole("button", { name: "Restart from the headwaters" }).click();
+} else {
+  await leafPage.keyboard.press("r");
+}
 await leafPage.keyboard.down("e");
 await leafPage.evaluate(() => window.advanceTime(20));
 await leafPage.keyboard.up("e");

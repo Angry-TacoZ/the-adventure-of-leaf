@@ -10,16 +10,30 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${process.env.LEAF_BASE_URL}/?testMode=manual`);
   await page.waitForFunction(() => window.advanceTime);
+  const calm = await page.evaluate(() => {
+    window.advanceTime(2000);
+    return JSON.parse(window.render_game_to_text());
+  });
+  assert.ok(calm.z < -0.5, "calm current carries the leaf downstream");
+  await page.keyboard.down("e");
+  await page.evaluate(() => window.advanceTime(30));
+  await page.keyboard.up("e");
+  await page.evaluate(() => window.advanceTime(30));
+  await page.keyboard.down("a");
+  await page.evaluate(() => window.advanceTime(3000));
+  await page.keyboard.up("a");
   const state = await page.evaluate(() => {
-    window.advanceTime(30000);
+    window.advanceTime(20000);
     return JSON.parse(window.render_game_to_text());
   });
   assert.equal(state.physics.engine, "Rapier");
   assert.ok(state.physics.particles > 8);
   assert.ok(
     state.z < -10,
-    "calm current carries actual Rapier leaf downstream",
+    "player steers the Rapier leaf past the rock",
   );
+  assert.equal(state.menu, null, "successful steering must keep the adventure active");
+  assert.ok(state.physics.integrity >= 0.25);
   assert.ok(Math.abs(state.y) < 0.3, "sampled buoyancy supports leaf");
   assert.ok(
     [state.x, state.y, state.z, state.vx, state.vy, state.vz].every(

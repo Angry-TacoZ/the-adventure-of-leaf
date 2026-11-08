@@ -1,7 +1,7 @@
 /**
  * Rest-space material area, extracted from PR #5 (commit 3a9473f). Stretch
  * never changes material area; only topology revisions do. shouldEndAdventure
- * was deliberately left behind: the ending belongs to a later subdivision.
+ * determines whether the adventure continues.
  */
 export function triangleArea(positions: ArrayLike<number>, indices: ArrayLike<number>) {
   let area = 0;
@@ -57,3 +57,6 @@ export function createGrindMeter(budget: number, margin: number, missCooldownSte
     },
   };
 }
+
+/** The adventure ends strictly below one quarter of the original leaf. */
+export const shouldEndAdventure = (fraction: number) => fraction < 0.25;

@@ -60,6 +60,8 @@ async function suite(mode, script) {
 }
 if (process.argv.includes("--optics")) {
   if (process.env.LEAF_OPTICS_NATIVE === "1")
+    await suite("dev", "tests/menu-browser.mjs");
+  if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/forest-browser.mjs");
   if (process.env.LEAF_OPTICS_NATIVE === "1")
     await suite("dev", "tests/opening-browser.mjs");
@@ -68,6 +70,8 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/depth-copy-check.mjs");
   await suite("dev", "tests/optics-verification.mjs");
 } else {
+  await suite("dev", "tests/menu-browser.mjs");
+  await suite("dev", "tests/lifecycle-browser.mjs");
   await suite("dev", "tests/leaf-view-browser.mjs");
   await suite("dev", "tests/understory-browser.mjs");
   await suite("dev", "tests/shore-lifecycle-browser.mjs");
@@ -80,7 +84,6 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/rapier-prototype-browser.mjs");
   await suite("dev", "tests/rapier-gameplay-browser.mjs");
   await suite("dev", "tests/rapier-damage-browser.mjs");
-  await suite("dev", "tests/lifecycle-browser.mjs");
   await suite("dev", "tests/browser-check.mjs");
   await suite("preview", "tests/realtime-browser.mjs");
 }

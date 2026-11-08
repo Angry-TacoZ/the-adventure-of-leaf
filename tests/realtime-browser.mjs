@@ -45,6 +45,7 @@ try {
   });
   await page.goto(base);
   await page.waitForFunction(() => window.render_game_to_text);
+  await page.getByRole("button", { name: "Begin journey", exact: true }).click();
   const read = () =>
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
   const opening = await read();
