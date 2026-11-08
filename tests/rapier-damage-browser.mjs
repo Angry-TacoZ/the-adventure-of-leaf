@@ -52,7 +52,39 @@ try {
         leaf.step(state, defaults);
       }
       const upstreamZ = state.z;
+      // Head-on ram: teleport the settled leaf just upstream of rock 0
+      // (x 0.25, z -9, r 1.05) and drift straight into it. A tear must
+      // follow within a bounded time, and every meter fire must cut.
       leaf.reset();
+      Object.assign(state, initial());
+      const ramBody = leaf.world.softBodies.getAll()[0];
+      for (let i = 0; i < ramBody.numParticles(); i++) {
+        const v = ramBody.particlePosition(i);
+        ramBody.setParticlePosition(i, { x: v.x, y: v.y, z: v.z - 5 });
+      }
+      let ramSteps = 0;
+      for (; ramSteps < 1200; ramSteps++) {
+        updateWind(state, defaults, neutral, 1 / 120);
+        leaf.step(state, defaults);
+        if (leaf.diagnostics().tears > 0) break;
+      }
+      const ram = { ...leaf.diagnostics(), steps: ramSteps };
+      // Sustained lateral contact: pass 0.5 m off-centre while wind pins the
+      // leaf against the rock flank, and expect repeated tears.
+      leaf.reset();
+      Object.assign(state, initial(), { windLevel: 4, intensity: 1 });
+      const flankBody = leaf.world.softBodies.getAll()[0];
+      for (let i = 0; i < flankBody.numParticles(); i++) {
+        const v = flankBody.particlePosition(i);
+        flankBody.setParticlePosition(i, { x: v.x + 0.75, y: v.y, z: v.z - 5 });
+      }
+      for (let i = 0; i < 2400; i++) {
+        updateWind(state, defaults, { x: -1, z: 0, raise: 0, lower: 0 }, 1 / 120);
+        leaf.step(state, defaults);
+      }
+      const flank = { ...leaf.diagnostics() };
+      leaf.reset();
+      Object.assign(state, initial());
       const stressed = leaf.world.softBodies.getAll()[0];
       stressed.setParticlePinned(0, true);
       stressed.applyParticleImpulse(
@@ -71,6 +103,8 @@ try {
         separated,
         reset,
         upstreamZ,
+        ram,
+        flank,
         stressDamage,
       };
     } finally {
@@ -85,6 +119,16 @@ try {
   assert.ok(Math.abs(result.separated[0].x - result.separated[1].x) > 0.01);
   assert.equal(result.reset, 1);
   assert.ok(result.upstreamZ < -0.1);
+  assert.ok(
+    result.ram.tears >= 1 && result.ram.steps < 1200,
+    `head-on ram tore after ${result.ram.steps} steps`,
+  );
+  assert.equal(result.ram.misses, 0, "every head-on meter fire cut");
+  assert.ok(
+    result.flank.tears >= 2,
+    `lateral grinding tore ${result.flank.tears} times`,
+  );
+  assert.equal(result.flank.misses, 0, "every lateral meter fire cut");
   assert.ok(
     result.stressDamage.tears > 0,
     "concentrated stress should trigger engine tearing",
@@ -105,7 +149,7 @@ try {
       `manual clock differs for ${key}`,
     );
   console.log(
-    "Rapier gentle stability, physical cut/fragments, reset, upstream wind and partitioned fixed clock passed",
+    "Rapier gentle stability, physical cut/fragments, reset, upstream wind, grind ram/flank tears without misses and partitioned fixed clock passed",
   );
 } finally {
   await browser.close();
