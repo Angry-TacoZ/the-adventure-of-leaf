@@ -35,3 +35,22 @@ test("grind meter ignores non-positive dt and degrades budget 0 sanely", () => {
   assert.equal(zero.sample(10, 1 / 120), false);
   assert.ok(Number.isFinite(zero.fraction()));
 });
+
+test("grind meter cools down after a miss and bounds repeated attempts", () => {
+  const meter = createGrindMeter(0.6, 0.15, 30);
+  for (let i = 0; i < 71; i++) assert.equal(meter.sample(0, 1 / 120), false);
+  assert.equal(meter.sample(0, 1 / 120), true);
+  meter.noteMiss();
+  for (let i = 0; i < 30; i++) assert.equal(meter.sample(0, 1 / 120), false);
+  assert.equal(meter.sample(0, 1 / 120), true);
+  assert.equal(meter.fraction(), 1);
+  // A persistently missing cut retries at cooldown rate, not step rate.
+  let fires = 0;
+  for (let i = 0; i < 500; i++) {
+    if (meter.sample(0, 1 / 120)) {
+      fires++;
+      meter.noteMiss();
+    }
+  }
+  assert.ok(fires <= 17, `bounded retries, got ${fires}`);
+});

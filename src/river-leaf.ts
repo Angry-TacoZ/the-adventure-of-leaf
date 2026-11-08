@@ -205,7 +205,10 @@ export async function createRiverLeaf() {
       const cutZ = state.z + Math.max(-0.3, Math.min(0.3, nearZ - state.z)) * 0.5;
       if (primary.numParticles() > 8 && grind.sample(gap, FIXED_STEP)) {
         if (grindCut(nearX, y / n, cutZ)) grind.reset();
-        else misses++;
+        else {
+          misses++;
+          grind.noteMiss();
+        }
       }
       if (state.z < river.stop) {
         reset();
