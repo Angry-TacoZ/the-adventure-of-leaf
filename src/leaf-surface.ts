@@ -34,6 +34,12 @@ export function createLeafSurface() {
   return {
     material,
     ready,
+    useFallback() {
+      material.map = null;
+      material.bumpMap = null;
+      material.color.setHex(0xb5aa45);
+      material.needsUpdate = true;
+    },
     dispose() {
       disposed = true;
       material.dispose();
