@@ -1,0 +1,15 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: the physical opening bough lost its supporting tree: [{"quality":1,"supportingTrunk":true},{"quality":0.5,"supportingTrunk":false},{"quality":1,"supportingTrunk":true},{"quality":0.5,"supportingTrunk":false}]
+    at file:///C:/Users/angry/OneDrive/Documents/ChatGPT/The%20adventure%20of%20Leaf/tests/forest-browser.mjs:48:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.13.1

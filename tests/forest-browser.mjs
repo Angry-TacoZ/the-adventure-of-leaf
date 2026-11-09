@@ -28,6 +28,29 @@ try {
   assert.equal(initial.forest.species, "Betula alleghaniensis");
   assert.equal(initial.forest.windDisplacement, 0);
   assert.ok(initial.forest.trees > 20);
+  const openingTree = await page.evaluate(async () => {
+    const { createForest } = await import("/src/forest.ts");
+    const owner = createForest(), matrix = owner.group.matrix.clone();
+    try {
+      const results = [];
+      for (const quality of [1, 0.5, 1, 0.5]) {
+        owner.update(0, 0, 0, 0, quality, 4);
+        let supportingTrunk = false;
+        for (let batch = 0; batch < owner.group.children.length; batch += 2) {
+          const trunk = owner.group.children[batch];
+          for (let i = 0; i < trunk.count; i++) {
+            trunk.getMatrixAt(i, matrix);
+            if (Math.abs(matrix.elements[12] - 6.7) < 1e-4 && Math.abs(matrix.elements[14] - 3) < 1e-4)
+              supportingTrunk = true;
+          }
+        }
+        results.push({ quality, supportingTrunk });
+      }
+      return results;
+    } finally { owner.dispose(); }
+  });
+  assert.ok(openingTree.every((r) => r.supportingTrunk),
+    `the physical opening bough lost its supporting tree: ${JSON.stringify(openingTree)}`);
   for (const quality of ["0.5", "1", "0.5", "1"]) {
     await page.locator("#quality").evaluate((e, value) => {
       e.value = value; e.dispatchEvent(new Event("change"));

@@ -2,6 +2,9 @@ import { onFinalPageHide } from "./lifecycle";
 import { createForest } from "./forest";
 import { createSky } from "./sky";
 import { createFishView } from "./fish-view";
+import { createGameUI } from "./game-ui";
+import { createGameAudio } from "./audio";
+import { shouldEndAdventure } from "./leaf-integrity";
 import { createBankMeshes } from "./bank-view";
 import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
 import { createUnderstory } from "./understory";
@@ -107,7 +110,7 @@ const qualityControl = document.querySelector<HTMLSelectElement>("#quality")!;
 if (import.meta.env.DEV) qualityControl.closest("label")!.hidden = true;
 qualityControl.addEventListener("change", () => {
   p.quality = Number(qualityControl.value);
-  if (gameplayReady && manual) render(0);
+  if (gameplayReady) { ui.setQuality(p.quality); redraw = true; if (manual) render(0); }
 });
 let state = initial();
 let lastHealth = { tears: 0, grind: 0, integrity: 1 };
@@ -334,6 +337,21 @@ let accumulator = 0,
   lastRender = 0,
   frameMs = 16;
 let frames = 0;
+let redraw = true, previousTears = 0;
+const audio = createGameAudio();
+onFinalPageHide(() => { void audio.dispose(); });
+function resetGame() {
+  placeLeafAtStart(); accumulator = 0; previousTears = 0; keys.clear(); redraw = true;
+}
+const ui = createGameUI({
+  manual, quality: p.quality, volumes: audio.volumes,
+  onStart: () => { resetGame(); if (!manual) void audio.unlock(); },
+  onHome: resetGame,
+  onChange: () => { keys.clear(); redraw = true; },
+  onQuality: (value) => { p.quality = value; qualityControl.value = String(value); redraw = true; },
+  onVolume: (bus, value) => audio.setVolume(bus, value),
+  onSoundTest: () => { void audio.unlock().then(() => audio.play("click")); },
+});
 const profiling = new URLSearchParams(location.search).has("profile");
 const samples: {
   frame: number;
@@ -379,6 +397,7 @@ function input() {
 }
 function update(dt: number) {
   const laps = state.laps;
+  const wasLanded = openingLanded;
   updateWind(state, p, input(), dt);
   physics.step(state, p);
   lastHealth = physics.diagnostics();
@@ -392,6 +411,11 @@ function update(dt: number) {
   }
   if (!openingLanded && state.y <= surface(state.x, state.z, state.time, p, state) + 0.1)
     openingLanded = true;
+  if (!wasLanded && openingLanded) audio.play("splash");
+  const health = physics.diagnostics();
+  if (health.tears > previousTears) audio.play("tear");
+  previousTears = health.tears;
+  if (shouldEndAdventure(health.integrity)) ui.lose();
 }
 function render(dt: number) {
   const started = performance.now();
@@ -465,28 +489,31 @@ function loop(now: number) {
   frames++;
   frameMs = frameMs * 0.92 + lastInterval * 0.08;
   lastRender = now;
-  if (!manual) {
+  ui.pollGamepad(now);
+  audio.update(!manual && !ui.paused, current(state.x, state.z, state.time, p), Math.hypot(state.windX, state.windZ) * state.intensity * p.windStrength);
+  if (!manual && !ui.paused) {
     accumulator += dt;
-    while (accumulator >= FIXED_STEP) {
+    while (accumulator >= FIXED_STEP && !ui.paused) {
       update(FIXED_STEP);
       accumulator -= FIXED_STEP;
     }
-  }
-  if (!manual || frames === 1) render(manual ? 0 : dt);
+  } else if (ui.paused) accumulator = 0;
+  if ((!manual && !ui.paused) || redraw || frames === 1) { render(manual || ui.paused ? 0 : dt); redraw = false; }
 }
 window.addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "f") {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void app.requestFullscreen();
+  }
+  // Modal controls retain native keyboard behavior; menu input cannot steer.
+  if (ui.paused) return;
   keys.add(e.key.toLowerCase());
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
     e.preventDefault();
   if (e.key.toLowerCase() === "r") {
-    placeLeafAtStart();
-    accumulator = 0;
-    camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
+    ui.begin();
+
     if (manual) render(0);
-  }
-  if (e.key.toLowerCase() === "f") {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void app.requestFullscreen();
   }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
@@ -495,12 +522,15 @@ window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  redraw = true;
   if (manual) render(0);
 });
 window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
+    menu: ui.screen,
+    audio: audio.diagnostics(),
     opening: { phase: openingLanded ? "afloat" : "falling", spawn },
     physics: physics.diagnostics(),
     understory: understory.diagnostics(),
@@ -574,11 +604,13 @@ if (manual)
   };
 if (manual)
   window.advanceTime = (ms: number) => {
+    if (ui.paused) { render(0); return; }
     accumulator += ms / 1000;
-    while (accumulator + 1e-12 >= FIXED_STEP) {
+    while (accumulator + 1e-12 >= FIXED_STEP && !ui.paused) {
       update(FIXED_STEP);
       accumulator = Math.max(0, accumulator - FIXED_STEP);
     }
+    if (ui.paused) accumulator = 0;
     render(ms / 1000);
   };
 if (import.meta.env.DEV) {

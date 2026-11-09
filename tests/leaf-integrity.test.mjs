@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { triangleArea, retainedFraction, createGrindMeter } from "../src/leaf-integrity.ts";
+import { triangleArea, retainedFraction, createGrindMeter, shouldEndAdventure } from "../src/leaf-integrity.ts";
 
 test("material area uses rest space and the largest piece wins", () => {
   const square = [0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1];
@@ -62,4 +62,9 @@ test("grind meter cools down after a miss and bounds repeated attempts", () => {
     }
   }
   assert.ok(fires <= 17, `bounded retries, got ${fires}`);
+});
+
+test("the ending uses the strict quarter threshold", () => {
+  assert.equal(shouldEndAdventure(0.25), false);
+  assert.equal(shouldEndAdventure(0.249), true);
 });
