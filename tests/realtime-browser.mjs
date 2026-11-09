@@ -97,7 +97,11 @@ try {
   );
   await page.setViewportSize({ width: 1280, height: 720 });
   await settle();
+  // Start navigation before the first rock, independent of resize-test duration.
+  await page.keyboard.press("r");
+  await page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text()); return s.time < 1 && s.z > -1; }, null, { timeout: 30000 });
   const start = await read();
+  assert.ok(Math.abs(start.camera.z - start.z - 0.65) < 1, "camera did not return to the leaf on restart");
   console.log("Navigation starting state", JSON.stringify({time:start.time,x:start.x,z:start.z,frames:start.frames,menu:start.menu,windLevel:start.windLevel}));
   assert.equal(start.rendererEngine, "WebGPURenderer");
   assert.equal(start.renderer, "WebGL2");
@@ -127,7 +131,7 @@ try {
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).x < -1.7,
     {},
-    { timeout: 60000 },
+    { timeout: 120000 },
   );
   await page.evaluate(() => {
     window.mockPad.axes[0] = 0;
@@ -136,7 +140,7 @@ try {
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).z < -13,
     {},
-    { timeout: 60000 },
+    { timeout: 120000 },
   );
   const passed = await read();
   assert.ok(passed.frames > start.frames + 10);

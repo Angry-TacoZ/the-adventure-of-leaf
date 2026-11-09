@@ -454,6 +454,7 @@ window.addEventListener("keydown", (e) => {
     state = initial();
     physics.reset();
     accumulator = 0;
+    camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
     if (manual) render(0);
   }
   if (e.key.toLowerCase() === "f") {
