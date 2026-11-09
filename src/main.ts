@@ -208,13 +208,18 @@ const optics = createRiverWater(geometry);
 const water = optics.mesh;
 scene.add(water);
 const leafView = createLeafView();
-await leafView.ready.catch(() => {
+let leafViewActive = true;
+void leafView.ready.catch(() => {
+  if (!leafViewActive) return;
   leafView.useFallback();
   document.querySelector("#error")!.textContent =
     "Leaf detail could not load. You can keep playing; reload to retry the texture.";
 });
 const leaf = leafView.group;
-onFinalPageHide(() => leafView.dispose());
+onFinalPageHide(() => {
+  leafViewActive = false;
+  leafView.dispose();
+});
 scene.add(leaf);
 const comparisonPlants =
   (import.meta.env.DEV ||
