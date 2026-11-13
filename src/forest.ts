@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import { attribute, positionLocal, uniform, sin } from "three/tsl";
 import { createBirchGeometry } from "./birch-tree";
 import { bankHeight } from "./bank-terrain";
-import { river } from "./simulation";
+import { headwatersExtent as river } from "./journey";
 import { Rng } from "./vendor/seedthree/rng.js";
 
 function barkTexture() {
@@ -24,7 +24,7 @@ function barkTexture() {
   return texture;
 }
 
-/** Static rooted scenery; independent of navigation, collisions and leaf damage. */
+/** Static rooted scenery; independent of navigation, collisions and leaf damage. The headwaters birch stand keeps the original river slice so the journey extent does not thin it; downstream reaches belong to later subdivisions. */
 export function createForest() {
   const group = new THREE.Group(); group.name = "Appalachian yellow-birch canopy";
   const clock = uniform(0), wind = uniform(new THREE.Vector3());
