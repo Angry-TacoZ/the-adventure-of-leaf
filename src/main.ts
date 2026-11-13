@@ -1,5 +1,7 @@
 import { onFinalPageHide } from "./lifecycle";
 import { createForest } from "./forest";
+import { createSky } from "./sky";
+import { createFishView } from "./fish-view";
 import { createBankMeshes } from "./bank-view";
 import { bankHeight, WATER_WIDTH, BED_WIDTH } from "./bank-terrain";
 import { createUnderstory } from "./understory";
@@ -28,6 +30,11 @@ if (import.meta.env.VITE_DEVELOPMENT_PREVIEW === "true") {
 }
 const app = document.querySelector<HTMLDivElement>("#app")!,
   diag = document.querySelector<HTMLOutputElement>("#diagnostics")!;
+const verification = new URLSearchParams(location.search);
+const manual = import.meta.env.DEV && verification.get("testMode") === "manual";
+// Existing optical/control fixtures begin afloat. Normal gameplay always opens
+// in the canopy; manual verification can explicitly exercise it with &opening.
+const startInRiver = manual && !verification.has("opening");
 let renderer: THREE.WebGPURenderer;
 let gameplayReady = false;
 try {
@@ -92,6 +99,9 @@ scene.add(new THREE.HemisphereLight(0xd9eff0, 0x455337, 2));
 const sun = new THREE.DirectionalLight(0xffefcc, 2);
 sun.position.set(-6, 14, 8);
 scene.add(sun);
+const sky = createSky(sun);
+scene.add(sky.group);
+onFinalPageHide(() => sky.dispose());
 const p: Params = { ...defaults };
 const qualityControl = document.querySelector<HTMLSelectElement>("#quality")!;
 if (import.meta.env.DEV) qualityControl.closest("label")!.hidden = true;
@@ -235,6 +245,20 @@ onFinalPageHide(() => understory.dispose());
 const forest = createForest();
 scene.add(forest.group);
 onFinalPageHide(() => forest.dispose());
+if (!forest.opening) throw new Error("The headwaters tree has no overhanging leaf attachment");
+const spawn = startInRiver ? { x: 0, y: 0.08, z: 0 } : forest.opening;
+let openingLanded = startInRiver;
+function placeLeafAtStart() {
+  state = initial();
+  physics.reset(spawn);
+  Object.assign(state, spawn);
+  openingLanded = startInRiver;
+  camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
+}
+placeLeafAtStart();
+const fishView = createFishView();
+scene.add(fishView.group);
+onFinalPageHide(() => fishView.dispose());
 
 // Temporary wind streaks: density and opacity follow the simulated directed wind.
 const streakCount = 15;
@@ -308,10 +332,7 @@ window.addEventListener("pageshow", (event) => {
 });
 let accumulator = 0,
   lastRender = 0,
-  frameMs = 16,
-  manual =
-    import.meta.env.DEV &&
-    new URLSearchParams(location.search).get("testMode") === "manual";
+  frameMs = 16;
 let frames = 0;
 const profiling = new URLSearchParams(location.search).has("profile");
 const samples: {
@@ -361,12 +382,16 @@ function update(dt: number) {
   updateWind(state, p, input(), dt);
   physics.step(state, p);
   lastHealth = physics.diagnostics();
-  if (state.laps !== laps)
+  if (state.laps !== laps) {
+    openingLanded = startInRiver;
     camera.position.set(
       state.x,
       state.y + p.cameraHeight,
       state.z + p.cameraDistance,
     );
+  }
+  if (!openingLanded && state.y <= surface(state.x, state.z, state.time, p, state) + 0.1)
+    openingLanded = true;
 }
 function render(dt: number) {
   const started = performance.now();
@@ -395,6 +420,7 @@ function render(dt: number) {
     state.z + p.cameraDistance,
   );
   camera.position.lerp(cameraTarget, 1 - Math.exp(-p.cameraSmoothing * dt));
+  if (!openingLanded) camera.position.y = cameraTarget.y;
   camera.lookAt(state.x, state.y + p.cameraAngle, state.z - 3);
   if (submersionTest?.view === "gameplay") {
     camera.position.copy(cameraTarget);
@@ -414,6 +440,8 @@ function render(dt: number) {
   optics.setQuality(p.quality);
   understory.setQuality(p.quality);
   forest.update(state.time, state.windX, state.windZ, state.intensity * p.windStrength, p.quality, state.z);
+  sky.update(state.time, state, state.windOffsetX, state.windOffsetZ, p.quality);
+  fishView.update(physics.readFishFrame(), state.time);
   updateWindStreaks();
   const renderStart = performance.now();
   renderer.render(scene, camera);
@@ -451,8 +479,7 @@ window.addEventListener("keydown", (e) => {
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
     e.preventDefault();
   if (e.key.toLowerCase() === "r") {
-    state = initial();
-    physics.reset();
+    placeLeafAtStart();
     accumulator = 0;
     camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
     if (manual) render(0);
@@ -474,9 +501,12 @@ window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "x right, z downstream is negative, y up",
     ...state,
+    opening: { phase: openingLanded ? "afloat" : "falling", spawn },
     physics: physics.diagnostics(),
     understory: understory.diagnostics(),
     forest: forest.diagnostics(),
+    sky: sky.diagnostics(),
+    fish: fishView.diagnostics(),
     current: current(state.x, state.z, state.time, p),
     obstacle,
     obstacles,
@@ -504,15 +534,34 @@ window.render_game_to_text = () =>
       surface(1, -4, state.time, p, state),
     ],
   });
+if (manual) {
+  const diagnostic = new THREE.MeshBasicNodeMaterial({ color: 0xff00ff, side: THREE.DoubleSide, toneMapped: false });
+  const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  onFinalPageHide(() => diagnostic.dispose());
+  Object.assign(window, { setVerificationLeafDiagnostic: (enabled: boolean) => {
+    leaf.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      if (enabled) { if (!originals.has(object)) originals.set(object, object.material); object.material = diagnostic; }
+      else { const original = originals.get(object); if (original) object.material = original; }
+    });
+    if (!enabled) originals.clear();
+  } });
+}
 if (manual)
   Object.assign(window, {
     forceLeafTear: () => physics.forceTear(),
     clearLeafSubmersion: () => {
       submersionTest = undefined;
     },
+    setVerificationLeafVisible: (visible: boolean) => { leaf.visible = visible; },
     setVerificationWaterVisible: (visible: boolean) => {
       optics.mesh.visible = visible;
     },
+    setVerificationForestVisible: (visible: boolean) => {
+      forest.group.visible = visible;
+    },
+    setVerificationSkyVisible: (visible: boolean) => { sky.group.visible = visible; },
+    setVerificationFishVisible: (visible: boolean) => { fishView.group.visible = visible; },
     setLeafSubmersion: (offset: number, pitch = 0, view = "inspection") => {
       submersionTest = { offset, pitch, view };
     },

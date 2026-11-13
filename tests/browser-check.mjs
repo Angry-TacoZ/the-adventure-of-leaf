@@ -183,26 +183,30 @@ assert.notDeepEqual(submersionImages[0], submersionImages[1]);
 assert.notDeepEqual(submersionImages[1], submersionImages[2]);
 await leafPage.evaluate(() => window.clearLeafSubmersion());
 await leafPage.keyboard.press("r");
-for (let level = 0; level < 4; level++) {
-  await leafPage.keyboard.down("e");
-  await leafPage.evaluate(() => window.advanceTime(20));
-  await leafPage.keyboard.up("e");
-  await leafPage.evaluate(() => window.advanceTime(20));
-}
-// The player must establish a safe lane again after every testing lap.
+await leafPage.keyboard.down("e");
+await leafPage.evaluate(() => window.advanceTime(20));
+await leafPage.keyboard.up("e");
+await leafPage.evaluate(() => window.advanceTime(20));
+// The test player maintains its lane with gentle wind and feedback after contacts.
+// These keyboard actions are test-only; gameplay has no automatic upstream steering.
+const corrections = { left: 0, right: 0 };
 for (let i = 0; i < 300; i++) {
   const pose = await leafPage.evaluate(() =>
     JSON.parse(window.render_game_to_text()),
   );
-  if (pose.z > -6 && pose.x < 2.7) await leafPage.keyboard.down("d");
+  if (pose.x < 2.6) { await leafPage.keyboard.down("d"); corrections.right++; }
   else await leafPage.keyboard.up("d");
+  if (pose.x > 3) { await leafPage.keyboard.down("a"); corrections.left++; }
+  else await leafPage.keyboard.up("a");
   await leafPage.evaluate(() => window.advanceTime(1000));
 }
 await leafPage.keyboard.up("d");
+await leafPage.keyboard.up("a");
 const looped = await leafPage.evaluate(() =>
   JSON.parse(window.render_game_to_text()),
 );
-assert.ok(looped.laps >= 2, `expected repeated laps, got ${looped.laps}`);
+assert.ok(looped.laps >= 2, `expected repeated laps, got ${looped.laps} at ${looped.x},${looped.z}`);
+assert.ok(corrections.left > 0 && corrections.right > 0, "test player did not correct its lane in both directions");
 assert.ok(
   Math.abs(looped.camera.z - looped.z - 0.65) < 1,
   "camera did not follow loop",
