@@ -1,5 +1,6 @@
 import { triangleArea, retainedFraction, createGrindMeter } from "./leaf-integrity";
-import { createBankData, BED_WIDTH } from "./bank-terrain";
+import { createBankData, createBedData } from "./bank-terrain";
+import { waterLevel } from "./journey";
 import { createLeafTopology } from "./leaf-topology";
 import type * as Rapier from "@dimforge/rapier3d";
 import {
@@ -15,24 +16,32 @@ export async function createRiverLeaf() {
   const world = new R.World({ x: 0, y: -9.81, z: 0 });
   world.timestep = FIXED_STEP;
   const events = new R.EventQueue(true);
-  // Rock collider centre height. The grind gate measures against this same
-  // geometry (ball centre plus radius), so validation stays exact.
+  // Rock collider centre height above the local waterline. The grind gate
+  // measures against this same geometry (ball centre plus radius), so
+  // validation stays exact. Journey reaches slope downward, so each rock
+  // rides on waterLevel at its own z rather than one global height.
   const ROCK_CENTER_Y = 0.32;
+  const rockCenterY = (rock: { z: number }) => waterLevel(rock.z) + ROCK_CENTER_Y;
+  // Local-origin frame for distant route coordinates; public state and
+  // snapshots stay in route coordinates. Extracted from PR #5 (331599e).
+  const offset = { x: 0, z: 0 };
+  let rebases = 0;
+  const fixed: { collider: Rapier.Collider; position: { x: number; y: number; z: number } }[] = [];
+  function staticCollider(desc: Rapier.ColliderDesc, position = { x: 0, y: 0, z: 0 }) {
+    const collider = world.createCollider(desc.setTranslation(position.x, position.y, position.z));
+    fixed.push({ collider, position });
+  }
   for (const rock of obstacles)
-    world.createCollider(
-      R.ColliderDesc.ball(rock.r).setTranslation(rock.x, ROCK_CENTER_Y, rock.z),
+    staticCollider(
+      R.ColliderDesc.ball(rock.r),
+      { x: rock.x, y: rockCenterY(rock), z: rock.z },
     );
   for (const side of [-1, 1] as const) {
     const bank = createBankData(side);
-    world.createCollider(R.ColliderDesc.trimesh(bank.positions, bank.indices));
+    staticCollider(R.ColliderDesc.trimesh(bank.positions, bank.indices));
   }
-  world.createCollider(
-    R.ColliderDesc.cuboid(
-      BED_WIDTH / 2,
-      0.05,
-      (river.start - river.end) / 2,
-    ).setTranslation(0, -0.46, (river.start + river.end) / 2),
-  );
+  const bed = createBedData();
+  staticCollider(R.ColliderDesc.trimesh(bed.positions, bed.indices));
   const positions: number[] = [],
     triangles: number[] = [];
   for (let row = 0; row < 17; row++) {
@@ -45,7 +54,7 @@ export async function createRiverLeaf() {
           (row % 2 ? 0.94 : 1),
       );
     for (const x of [-width, 0, width])
-      positions.push(x, 0.08, (t - 0.5) * 0.89);
+      positions.push(x, 0, (t - 0.5) * 0.89);
     if (row)
       for (let col = 0; col < 2; col++) {
         const a = (row - 1) * 3 + col,
@@ -78,6 +87,21 @@ export async function createRiverLeaf() {
       !largest || materialArea(body) > materialArea(largest) ? body : largest, undefined);
   }
   let bodies: Rapier.SoftBody[] = [];
+  // Keep Rapier's deformable solve near its origin. Public state/snapshots
+  // remain in route coordinates; rebasing changes no velocity, rest shape
+  // or world pose. Extracted from PR #5 (331599e).
+  function rebaseTo(x: number, z: number) {
+    const dx = x - offset.x, dz = z - offset.z;
+    if (dx === 0 && dz === 0) return;
+    for (const body of bodies)
+      for (let i = 0; i < body.numParticles(); i++) {
+        const p = body.particlePosition(i); p.x -= dx; p.z -= dz;
+        body.setParticlePosition(i, p);
+      }
+    offset.x = x; offset.z = z; rebases++;
+    for (const { collider, position } of fixed)
+      collider.setTranslation({ x: position.x - x, y: position.y, z: position.z - z });
+  }
   const material = R.SoftBodyMaterial.uniform(30, 1);
   material.tearStrain = 0.08;
   material.tearForce = 0.01;
@@ -94,15 +118,24 @@ export async function createRiverLeaf() {
   let misses = 0;
   let lastStepMs = 0,
     tears = 0;
-  function reset() {
+  let origin = { x: 0, y: 0.08, z: 0 };
+  function reset(spawn: { x: number; y: number; z: number } = origin) {
+    origin = { ...spawn };
     tears = 0;
     for (const body of world.softBodies.getAll()) world.removeSoftBody(body);
+    bodies = [];
+    rebaseTo(Math.round(origin.x), Math.round(origin.z));
     topology.clear();
     grind.reset();
     misses = 0;
     areaCache.clear();
     const desc = R.SoftBodyDesc.trimesh(rest, indices);
     if (!desc) throw Error("Rapier leaf triangulation failed");
+    // Placement moves current particles only: Rapier perturbs stored rest
+    // positions at creation, which would break topology's exact
+    // rest matching (all source IDs become 0xffffffff). The rest mesh is centred
+    // at y=0, so placement needs no baked-height correction.
+    const place = { x: origin.x - offset.x, y: origin.y, z: origin.z - offset.z };
     bodies = [
       world.createSoftBody(
         desc
@@ -112,6 +145,12 @@ export async function createRiverLeaf() {
           .setParticleRadius(0.008),
       ),
     ];
+    if (place.x !== 0 || place.y !== 0 || place.z !== 0)
+      for (let i = 0; i < bodies[0].numParticles(); i++) {
+        const p = bodies[0].particlePosition(i);
+        p.x += place.x; p.y += place.y; p.z += place.z;
+        bodies[0].setParticlePosition(i, p);
+      }
   }
   reset();
   const frame: LeafFrame = {
@@ -119,6 +158,7 @@ export async function createRiverLeaf() {
     fragments: [],
   };
   const point = { x: 0, y: 0, z: 0 },
+    worldPoint = { x: 0, y: 0, z: 0 },
     velocity = { x: 0, y: 0, z: 0 },
     force = { x: 0, y: 0, z: 0 };
 
@@ -154,12 +194,16 @@ export async function createRiverLeaf() {
     reset,
     step(state: State, p: Params) {
       const started = performance.now();
+      const centre = primaryBody()?.centerOfMass();
+      if (centre && (Math.abs(centre.x) > 1 || Math.abs(centre.z) > 1))
+        rebaseTo(offset.x + Math.round(centre.x), offset.z + Math.round(centre.z));
       for (const body of bodies) {
         body.resetForces(true);
         for (let i = 0; i < body.numParticles(); i++) {
           body.particlePosition(i, point);
           body.particleVelocity(i, velocity);
-          const e = sampleEnvironment(point.x, point.z, state, p),
+          worldPoint.x = point.x + offset.x; worldPoint.y = point.y; worldPoint.z = point.z + offset.z;
+          const e = sampleEnvironment(worldPoint.x, worldPoint.z, state, p),
             m = body.particleMass(i);
           // Effective 4 cm supported-area approximation, with half immersion at equilibrium.
           const immersed = Math.max(
@@ -203,9 +247,9 @@ export async function createRiverLeaf() {
         vz += velocity.z;
       }
       const n = primary.numParticles();
-      state.x = x / n;
+      state.x = x / n + offset.x;
       state.y = y / n;
-      state.z = z / n;
+      state.z = z / n + offset.z;
       state.vx = vx / n;
       state.vy = vy / n;
       state.vz = vz / n;
@@ -220,22 +264,27 @@ export async function createRiverLeaf() {
       // recorded miss; the meter stays full and retries instead of
       // resetting. Below 8 particles the leaf is already destroyed, so
       // grinding pauses with no miss and no reset.
-      let gap = Infinity, nearX = state.x, nearZ = state.z;
+      // Rock colliders live in the rebased local frame while state is in
+      // route coordinates, so the fine scan compares local particle
+      // positions against local rock positions. The cut stays local too.
+      let gap = Infinity, nearX = state.x - offset.x, nearZ = state.z - offset.z;
       for (const rock of obstacles) {
         const cdx = state.x - rock.x,
-          cdy = state.y - ROCK_CENTER_Y,
+          cdy = state.y - rockCenterY(rock),
           cdz = state.z - rock.z;
         if (Math.hypot(cdx, cdy, cdz) - rock.r > 1.0) continue;
+        const localX = rock.x - offset.x, localZ = rock.z - offset.z;
         for (let i = 0; i < primary.numParticles(); i++) {
           primary.particlePosition(i, point);
-          const dx = point.x - rock.x,
-            dy = point.y - ROCK_CENTER_Y,
-            dz = point.z - rock.z;
+          const dx = point.x - localX,
+            dy = point.y - rockCenterY(rock),
+            dz = point.z - localZ;
           const d = Math.hypot(dx, dy, dz) - rock.r;
           if (d < gap) { gap = d; nearX = point.x; nearZ = point.z; }
         }
       }
-      const cutZ = state.z + Math.max(-0.3, Math.min(0.3, nearZ - state.z)) * 0.5;
+      const localCentroidZ = state.z - offset.z;
+      const cutZ = localCentroidZ + Math.max(-0.3, Math.min(0.3, nearZ - localCentroidZ)) * 0.5;
       if (primary.numParticles() > 8 && grind.sample(gap, FIXED_STEP)) {
         if (grindCut(nearX, y / n, cutZ)) grind.reset();
         else {
@@ -244,7 +293,7 @@ export async function createRiverLeaf() {
         }
       }
       if (state.z < river.stop) {
-        reset();
+        reset({ x: 0, y: 0.08, z: 0 });
         state.x = 0;
         state.z = 0;
         state.y = 0.08;
@@ -254,7 +303,13 @@ export async function createRiverLeaf() {
       lastStepMs = performance.now() - started;
     },
     readFrame() {
-      frame.fragments = bodies.map((body) => topology.read(body));
+      frame.fragments = bodies.map((body) => {
+        const data = topology.read(body);
+        for (let i = 0; i < data.positions.length; i += 3) {
+          data.positions[i] += offset.x; data.positions[i + 2] += offset.z;
+        }
+        return data;
+      });
       return frame;
     },
     forceTear() {
@@ -295,6 +350,7 @@ export async function createRiverLeaf() {
         tears,
         misses,
         integrity: retainedFraction(bodies.map(materialArea), originalArea),
+        origin: { ...offset }, rebases,
         grind: grind.fraction(),
         stepMs: lastStepMs,
       };

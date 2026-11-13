@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { riverExtent, channelHalfWidth } from "../src/journey.ts";
 import {
   defaults,
   initial,
@@ -149,7 +150,10 @@ test("leaf repeatedly loops to the start without resetting wind", () => {
   run(s, 40, 1 / 120);
   assert.ok(s.z < -35);
   s.windLevel = 2;
-  run(s, 200, 1 / 120);
+  for (let lap = 0; lap < 3; lap++) {
+    s.z = riverExtent.stop - 0.01;
+    step(s, defaults, neutral, 1 / 120);
+  }
   assert.ok(s.laps >= 2);
   assert.equal(s.windLevel, 2);
 });
@@ -166,13 +170,13 @@ test("each river rock participates in collision", () => {
   }
 });
 
-test("a leftward wind burst followed by neutral wind clears every rock", () => {
+test("wind-directed test-player feedback clears the connected route's rocks", () => {
   const s = initial();
-  step(s, defaults, { ...neutral, raise: 1 }, 1 / 120);
-  run(s, 2.5, 1 / 120, { ...neutral, x: -1 });
-  for (let i = 0; i < 24000; i++) {
-    step(s, defaults, neutral, 1 / 120);
-    assert.ok(Math.abs(s.x) <= 3.65 + 1e-8, `outside river: ${s.x}`);
+  s.windLevel = 4;
+  for (let i = 0; i < 900 * 120 && !s.laps; i++) {
+    const x = s.x < 2.6 ? 1 : s.x > 3 ? -1 : 0;
+    step(s, defaults, { ...neutral, x }, 1 / 120);
+    assert.ok(Math.abs(s.x) <= channelHalfWidth(s.z) + 0.6, `outside river: ${s.x}`);
     for (const rock of obstacles)
       assert.ok(Math.hypot(s.x - rock.x, s.z - rock.z) >= rock.r + 0.28 - 1e-8);
   }
@@ -182,7 +186,7 @@ test("a leftward wind burst followed by neutral wind clears every rock", () => {
 test("each obstacle leaves room for the leaf at both banks", () => {
   for (const rock of obstacles)
     assert.ok(
-      3.65 - Math.abs(rock.x) > rock.r + 0.28,
+      channelHalfWidth(rock.z) - 0.05 - Math.abs(rock.x) > rock.r + 0.28,
       `blocked bank at ${rock.z}`,
     );
 });

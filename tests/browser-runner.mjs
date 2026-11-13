@@ -74,6 +74,9 @@ if (process.argv.includes("--optics")) {
   await suite("dev", "tests/rapier-gameplay-browser.mjs");
   await suite("dev", "tests/rapier-damage-browser.mjs");
   await suite("dev", "tests/lifecycle-browser.mjs");
+  await suite("dev", "tests/journey-physics-browser.mjs");
+  await suite("dev", "tests/journey-render-browser.mjs");
+  await suite("dev", "tests/water-entry-browser.mjs");
   await suite("dev", "tests/browser-check.mjs");
   await suite("preview", "tests/realtime-browser.mjs");
 }
