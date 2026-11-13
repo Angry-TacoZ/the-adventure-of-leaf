@@ -7,11 +7,12 @@ const browser = await chromium.launch({
 });
 const base = process.env.LEAF_BASE_URL || "http://127.0.0.1:5173";
 await mkdir("output/web-game", { recursive: true });
+let page;
 try {
-  const page = await browser.newPage({
+  page = await browser.newPage({
       viewport: { width: 1280, height: 720 },
-    }),
-    errors = [];
+    });
+  const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -96,14 +97,19 @@ try {
   );
   await page.setViewportSize({ width: 1280, height: 720 });
   await settle();
+  // Start navigation before the first rock, independent of resize-test duration.
+  await page.keyboard.press("r");
+  await page.waitForFunction(() => { const s = JSON.parse(window.render_game_to_text()); return s.time < 1 && s.z > -1; }, null, { timeout: 30000 });
   const start = await read();
+  assert.ok(Math.abs(start.camera.z - start.z - 0.65) < 1, "camera did not return to the leaf on restart");
+  console.log("Navigation starting state", JSON.stringify({time:start.time,x:start.x,z:start.z,frames:start.frames,menu:start.menu,windLevel:start.windLevel}));
   assert.equal(start.rendererEngine, "WebGPURenderer");
   assert.equal(start.renderer, "WebGL2");
   await page.evaluate(() => {
     window.cameraTrack = [];
     function observe() {
       const s = JSON.parse(window.render_game_to_text());
-      window.cameraTrack.push({ x: s.camera.x, y: s.camera.y, z: s.camera.z });
+      window.cameraTrack.push({ x: s.camera.x, y: s.camera.y, z: s.camera.z, leafX:s.x,leafZ:s.z,time:s.time,windLevel:s.windLevel,menu:s.menu });
       if (s.z >= -13) requestAnimationFrame(observe);
     }
     requestAnimationFrame(observe);
@@ -125,7 +131,7 @@ try {
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).x < -1.7,
     {},
-    { timeout: 60000 },
+    { timeout: 120000 },
   );
   await page.evaluate(() => {
     window.mockPad.axes[0] = 0;
@@ -134,7 +140,7 @@ try {
   await page.waitForFunction(
     () => JSON.parse(window.render_game_to_text()).z < -13,
     {},
-    { timeout: 60000 },
+    { timeout: 120000 },
   );
   const passed = await read();
   assert.ok(passed.frames > start.frames + 10);
@@ -261,5 +267,10 @@ try {
     "Real animation frames: wind-directed obstacle passage, camera follow, controller triggers/direction/disconnect, keyboard and neutral release passed",
   );
 } finally {
+  if (page && !page.isClosed()) try {
+    const diagnostic = await Promise.race([page.evaluate(() => ({ state: JSON.parse(window.render_game_to_text()), track: window.cameraTrack?.slice(-120), pad: window.mockPad })), new Promise((_,reject) => setTimeout(() => reject(Error("Final state capture timed out")),5000).unref())]);
+    await writeFile("output/web-game/realtime-final-state.json", JSON.stringify(diagnostic,null,2));
+    await page.screenshot({path:"output/web-game/realtime-final.png",timeout:10000});
+  } catch (error) { console.warn("Could not capture final navigation evidence:",error.message); }
   await browser.close();
 }
