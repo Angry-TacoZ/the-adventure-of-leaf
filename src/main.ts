@@ -478,7 +478,6 @@ window.addEventListener("keydown", (e) => {
     camera.position.set(spawn.x, spawn.y + p.cameraHeight, spawn.z + p.cameraDistance);
     physics.reset(spawn);
     accumulator = 0;
-    camera.position.set(state.x, state.y + p.cameraHeight, state.z + p.cameraDistance);
     if (manual) render(0);
   }
   if (e.key.toLowerCase() === "f") {
