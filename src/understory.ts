@@ -36,7 +36,7 @@ export async function createUnderstory(comparison = false) {
       gltf.scene.updateMatrixWorld(true);
       const count = comparison
         ? 12
-        : ({ fern_02: 48, grass_medium_01: 96, moss_01: 128, nettle_plant: 20 }[
+        : ({ fern_02: 144, grass_medium_01: 288, moss_01: 192, nettle_plant: 80 }[
             name
           ] ?? 12);
       gltf.scene.traverse((object) => {
@@ -68,6 +68,9 @@ export async function createUnderstory(comparison = false) {
             ? 5 - slot * 4 - kind * 0.7
             : river.start -
               ((slot + 0.5) / (count / 2)) * (river.start - river.end);
+          // Spread larger plants onto the outer slopes; keep moss near the water.
+          const bankBand =
+            comparison || name === "moss_01" ? 0 : Math.floor(i / 2) % 3;
           const x =
             side *
             (({
@@ -76,13 +79,14 @@ export async function createUnderstory(comparison = false) {
               grass_medium_01: 5.5,
               nettle_plant: 6.3,
             }[name] ?? 5.65) +
-              (i % 3) * 0.17);
-          const y = bankHeight(x, z) - 0.02;
+              (i % 3) * 0.17 + bankBand * 3.3);
+          const y = bankHeight(x, z) + (name === "moss_01" ? 0.01 : -0.02);
           rotation.setFromAxisAngle(
             new THREE.Vector3(0, 1, 0),
             i * 2.399 + kind,
           );
-          scale.setScalar(0.85 + (i % 4) * 0.1);
+          const size = name === "moss_01" ? 2 : name === "grass_medium_01" ? 1.5 : 1;
+          scale.setScalar((0.85 + (i % 4) * 0.1) * size);
           matrix
             .compose(new THREE.Vector3(x, y, z), rotation, scale)
             .multiply(original);
